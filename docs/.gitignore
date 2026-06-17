@@ -1,0 +1,8 @@
+# Hugo build-output en caches — nooit committen.
+# (De root-.gitignore dekt deze al; hier expliciet voor wie alleen in docs/ kijkt.)
+/public/
+/resources/
+.hugo_build.lock
+
+# Hugo Modules: vendor-cache niet committen; go.mod en go.sum WEL.
+/_vendor/

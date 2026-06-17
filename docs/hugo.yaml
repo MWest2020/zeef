@@ -1,0 +1,72 @@
+# Hugo-configuratie voor de zeef-documentatiesite.
+# Thema: Hextra, geladen via Hugo Modules (zie go.mod / module.imports hieronder).
+# Build:  hugo --gc --minify
+baseURL: "https://example.org/"
+title: zeef
+languageCode: nl
+defaultContentLanguage: nl
+
+enableRobotsTXT: true
+enableGitInfo: false
+
+# Hextra wordt als Hugo Module geïmporteerd.
+module:
+  imports:
+    - path: github.com/imfing/hextra
+
+markup:
+  highlight:
+    noClasses: false
+  goldmark:
+    renderer:
+      unsafe: true
+
+# Hextra-zoekfunctie (FlexSearch, volledig client-side — geen externe dienst).
+params:
+  description: "Open-source convergentietool voor de Woo — 1.000 documenten erin, ~100 navolgbaar eruit."
+  navbar:
+    displayTitle: true
+    displayLogo: false
+  theme:
+    default: system
+    displayToggle: true
+  footer:
+    enable: true
+    displayCopyright: true
+    displayPoweredBy: true
+  search:
+    enable: true
+    type: flexsearch
+    flexsearch:
+      index: content
+  editURL:
+    enable: false
+
+menu:
+  main:
+    - name: Documentatie
+      pageRef: /docs
+      weight: 1
+    - name: Bijdragen
+      pageRef: /docs/bijdragen
+      weight: 2
+    - name: Zoeken
+      weight: 3
+      params:
+        type: search
+    - name: GitHub
+      weight: 4
+      url: "https://github.com/MWest2020/zeef"
+      params:
+        icon: github
+
+  sidebar:
+    - identifier: more
+      name: Project
+      params:
+        type: separator
+      weight: 10
+    - identifier: github
+      name: "zeef op GitHub ↗"
+      url: "https://github.com/MWest2020/zeef"
+      weight: 11

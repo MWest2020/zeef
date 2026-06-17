@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>zeef — convergentietool voor de Woo</title>
+
+  <!-- Lokaal gevendorde reveal.js 5.1.0 (MIT). Geen runtime-CDN: werkt air-gapped. -->
+  <link rel="stylesheet" href="reveal/reset.css">
+  <link rel="stylesheet" href="reveal/reveal.css">
+  <!-- Eigen thema NA reveal.css -->
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: Titel / pitch                                          -->
+      <!-- ============================================================ -->
+      <section class="z-fill z-center" data-background-color="#0d1b2a">
+        <div class="z-kicker">Open source · Woo · fase 2</div>
+        <h1 style="font-size:4em; color:#fff;">zeef</h1>
+        <p class="z-big z-center" style="margin:0.2em auto; max-width:18em;">
+          <span class="z-accent">1.000</span> documenten erin,
+          <span class="z-accent">~100</span> eruit.
+        </p>
+        <p class="z-lead z-center" style="margin:0.6em auto;">
+          De navolgbare convergentieslag van het Woo-proces.
+        </p>
+        <div class="z-footer">
+          <span class="z-logo">zeef</span>
+          <span>Technische verkenning BZK / ECP · 26 juni 2026</span>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: Het probleem — de handmatige convergentieslag          -->
+      <!-- ============================================================ -->
+      <section class="z-fill" data-background-color="#0d1b2a">
+        <div class="z-kicker">Het probleem</div>
+        <h2>Het gat in het midden van de Woo.</h2>
+        <div class="z-funnel" style="margin-top:0.8em;">
+          <div class="seg" style="background:var(--z-danger); width:3.2em; height:3.2em; border-radius:8px;">
+            <span class="num">~1.000</span>
+            <span class="lbl">semi-relevant</span>
+          </div>
+          <span class="arrow">→</span>
+          <div class="seg z-card" style="border-style:dashed; width:4.2em; height:3.4em;">
+            <span class="num z-mute" style="font-size:0.7em;">handwerk</span>
+            <span class="lbl">traag · inconsistent · niet te verantwoorden</span>
+          </div>
+          <span class="arrow">→</span>
+          <div class="seg" style="background:var(--z-accent); width:2.6em; height:2.6em; border-radius:8px;">
+            <span class="num">~100</span>
+            <span class="lbl">kern</span>
+          </div>
+        </div>
+        <p class="z-lead" style="margin-top:1em;">
+          Fase 1 (bronsystemen doorzoeken) en fase 3 (lakken) zijn gedekt.
+          De <strong>convergentie ertussen</strong> gebeurt vandaag met de hand —
+          en er is geen open-source gereedschap voor.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: De aanpak — TAR / e-discovery, recall-gericht          -->
+      <!-- ============================================================ -->
+      <section class="z-fill" data-background-color="#0d1b2a">
+        <div class="z-kicker">De aanpak</div>
+        <h2>Geen nieuw wiel: <span class="z-accent">e-discovery / TAR</span>.</h2>
+        <div class="z-cols" style="margin-top:0.8em;">
+          <div class="z-card">
+            <h3>Recall-gericht</h3>
+            <p style="font-size:0.8em; line-height:1.4;">
+              Een relevant document <em>missen</em> is erger dan ruis erbij houden.
+              Bij twijfel: insluiten.
+            </p>
+          </div>
+          <div class="z-card">
+            <h3>Boring &amp; auditable</h3>
+            <p style="font-size:0.8em; line-height:1.4;">
+              Niets dat niet in een ISO 27001-context uit te leggen is.
+              Deterministisch waar het kan; <strong>LLM alleen waar nodig, altijd gelogd</strong>.
+            </p>
+          </div>
+        </div>
+        <p class="z-lead" style="margin-top:1em;">
+          Technology-assisted review is bewezen in de juridische wereld.
+          We lenen de methode in plaats van relevantie-ranking opnieuw uit te vinden.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: De pijplijn — visuele flow                             -->
+      <!-- ============================================================ -->
+      <section class="z-fill" data-background-color="#0d1b2a">
+        <div class="z-kicker">De pijplijn · één run, negen stages</div>
+        <h2>Eén canoniek <code>Document</code>, negen stappen.</h2>
+        <div class="z-pipe">
+          <div class="stage"><span class="n">1</span><span class="t">Ingest</span><span class="d">.eml/.msg + digitale PDF</span></div>
+          <div class="stage"><span class="n">2</span><span class="t">Normalize</span><span class="d">naar canoniek model</span></div>
+          <div class="stage"><span class="n">3</span><span class="t">Relate</span><span class="d">threads + near-dupes</span></div>
+          <div class="stage llm"><span class="n">4</span><span class="t">Scope-filter</span><span class="d">regels eerst, LLM bij twijfel</span></div>
+        </div>
+        <div class="z-pipe">
+          <div class="stage"><span class="n">5–7</span><span class="t">Embed → Retrieve → Rerank</span><span class="d">kandidaten t.o.v. de zoekvraag, precisiepas</span></div>
+          <div class="stage"><span class="n">8</span><span class="t">Select</span><span class="d">instelbare cutoff, recall-bias</span></div>
+          <div class="stage out"><span class="n">9</span><span class="t">Export</span><span class="d">xlsx · relations · audit.jsonl</span></div>
+        </div>
+        <p class="z-lead" style="margin-top:0.9em;">
+          Elke stage is <strong>apart te draaien</strong> en <strong>apart gelogd</strong>.
+          <span class="z-amber">Amber = LLM-stap</span> · <span class="z-accent">groen = deterministisch</span>.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: Twee modi — sovereign vs cloud + --no-llm              -->
+      <!-- ============================================================ -->
+      <section class="z-fill" data-background-color="#0d1b2a">
+        <div class="z-kicker">Twee modi · één pijplijn · alleen de drivers verschillen</div>
+        <h2>Soeverein of cloud — <span class="z-accent">een vlag, geen code</span>.</h2>
+        <div class="z-cols" style="margin-top:0.6em;">
+          <div class="z-card z-mode sov">
+            <span class="tag">--profile sovereign</span>
+            <h3>Sovereign</h3>
+            <p class="pts">
+              Volledig lokaal en <strong>air-gapped</strong>. Qwen3 via Ollama/vLLM,
+              lokale embeddings + reranker. Geen netwerk. De primaire demo.
+            </p>
+          </div>
+          <div class="z-card z-mode cloud">
+            <span class="tag">--profile cloud</span>
+            <h3>Cloud</h3>
+            <p class="pts">
+              Topmodel voor maximale kwaliteit (Claude API + hosted embeddings/rerank).
+              Vereist egress; alleen waar de omgeving dat toestaat.
+            </p>
+          </div>
+        </div>
+        <p class="z-lead z-center" style="margin:0.9em auto 0;">
+          <code>--no-llm</code> slaat alle generatieve stappen over —
+          de maximaal-soevereine, air-gapped-veilige fallback.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: De audit-trail — DE differentiator                     -->
+      <!-- ============================================================ -->
+      <section class="z-fill" data-background-color="#07121d">
+        <div class="z-kicker z-amber">De differentiator</div>
+        <h2>De <span class="z-amber">audit-trail</span> is het product.</h2>
+        <p class="z-lead" style="margin-bottom:0.7em;">
+          Eén append-only <code>audit.jsonl</code>: één event per stage-actie.
+          Zowel de geselecteerde <span class="z-accent">kern</span> als de uitgesloten
+          <span style="color:var(--z-danger)">rest</span> is er volledig uit te reconstrueren.
+        </p>
+        <pre class="z-jsonl"><span class="k">"stage"</span>: <span class="s">"scope-filter"</span>, <span class="k">"doc_id"</span>: <span class="s">"a3f9c1…"</span>, <span class="k">"action"</span>: <span class="s">"excluded"</span>,
+<span class="k">"reason"</span>: <span class="s">"calendar-invite (rule:R3)"</span>, <span class="k">"model"</span>: <span class="v">null</span>, <span class="k">"where"</span>: <span class="s">"local"</span>
+<span class="k">"stage"</span>: <span class="s">"select"</span>, <span class="k">"doc_id"</span>: <span class="s">"b7e2d4…"</span>, <span class="k">"action"</span>: <span class="s">"selected"</span>,
+<span class="k">"final_score"</span>: <span class="v">0.81</span>, <span class="k">"cutoff"</span>: <span class="s">"target=100 (knee@0.74)"</span>, <span class="k">"where"</span>: <span class="s">"local"</span></pre>
+        <p class="z-lead" style="margin-top:0.7em;">
+          Per beslissing: <strong>welk model</strong>, <strong>waar het draaide</strong>
+          (lokaal/cloud), en bij LLM-stappen de <strong>exacte prompt</strong>.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: Instelbare cutoff — geen magisch getal                 -->
+      <!-- ============================================================ -->
+      <section class="z-fill" data-background-color="#0d1b2a">
+        <div class="z-kicker">De selectie</div>
+        <h2>Geen magisch getal — <span class="z-accent">een bewuste keuze</span>.</h2>
+        <div class="z-cols z-center" style="margin-top:1em;">
+          <div class="z-card z-stat"><div class="v">--top-n</div><div class="l">harde telling</div></div>
+          <div class="z-card z-stat"><div class="v">--threshold</div><div class="l">score ≥ X</div></div>
+          <div class="z-card z-stat"><div class="v">--target</div><div class="l">adaptief, toont de "knie"</div></div>
+        </div>
+        <p class="z-lead z-center" style="margin:1.1em auto 0;">
+          <code>--target</code> laat zien <strong>waar de score-knie ligt</strong>,
+          zodat de gebruiker de afsnijding bewust kiest in plaats van een getal te slikken.
+          De recall-bias verbreedt de snede bij twijfelgevallen — en is instelbaar.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: Positionering — upstream van OpenWoo / Common Ground   -->
+      <!-- ============================================================ -->
+      <section class="z-fill" data-background-color="#0d1b2a">
+        <div class="z-kicker">Positionering</div>
+        <h2>De ontbrekende schakel <span class="z-accent">upstream</span>.</h2>
+        <div class="z-funnel" style="margin-top:1em; gap:0.4em;">
+          <div class="seg z-card" style="border-left:4px solid var(--z-accent); width:6em; height:3em;">
+            <span class="num z-accent" style="font-size:0.7em;">zeef</span>
+            <span class="lbl">convergentie · fase 2</span>
+          </div>
+          <span class="arrow">→</span>
+          <div class="seg z-card" style="width:9em; height:3em;">
+            <span class="num z-mute" style="font-size:0.55em;">OpenWoo / Common Ground</span>
+            <span class="lbl">OpenConnector · OpenRegister · OpenCatalogi</span>
+          </div>
+        </div>
+        <p class="z-lead" style="margin-top:1.1em;">
+          De publicatie- en zoekketen is goed gedekt. <code>zeef</code> levert er de
+          navolgbare kernselectie aan. <strong>EUPL-1.2</strong>, aansluitend bij de
+          Nederlandse-overheidscontext.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: De demo-dag — 26 juni 2026                             -->
+      <!-- ============================================================ -->
+      <section class="z-fill z-center" data-background-color="#07121d">
+        <div class="z-kicker z-amber">De aanleiding</div>
+        <h2 class="z-center">26 juni 2026.</h2>
+        <p class="z-lead z-center" style="margin:0.6em auto;">
+          Technische verkenning BZK / ECP. De tool draait die dag <strong>live</strong>
+          op een aangeleverde dataset en een verfijnde zoekvraag — en levert een
+          verdedigbare, volledig herleidbare selectie.
+        </p>
+        <div class="z-card z-center" style="display:inline-block; margin-top:0.8em; font-family:var(--z-mono); font-size:0.7em; color:var(--z-accent);">
+          zeef converge ./docs --query "…" --profile sovereign --target 100
+        </div>
+        <p class="z-lead z-center z-mute" style="margin:0.8em auto 0; font-size:0.85em;">
+          Levert op: de geselecteerde set · <code>inventory.xlsx</code> ·
+          <code>relations.json</code> · <code>audit.jsonl</code>.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: Afsluiter                                              -->
+      <!-- ============================================================ -->
+      <section class="z-fill z-center" data-background-color="#0d1b2a">
+        <h1 style="font-size:3em; color:#fff;">zeef</h1>
+        <p class="z-big z-center" style="max-width:20em; margin:0.4em auto;">
+          Navolgbare convergentie, soeverein waar het moet,
+          <span class="z-accent">elke beslissing reconstrueerbaar</span>.
+        </p>
+        <p class="z-lead z-center z-mute" style="margin:0.8em auto 0;">
+          Open source · EUPL-1.2 · boring &amp; auditable.
+        </p>
+        <div class="z-footer">
+          <span class="z-logo">zeef</span>
+          <span>mark@conduction.nl</span>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- Lokaal gevendorde reveal.js engine -->
+  <script src="reveal/reveal.js"></script>
+  <script>
+    // Minimale init — geen plugins, geen externe afhankelijkheden.
+    Reveal.initialize({
+      hash: true,
+      slideNumber: 'c/t',
+      transition: 'slide',
+      controls: true,
+      progress: true,
+      width: 1280,
+      height: 720,
+      margin: 0.06
+    });
+  </script>
+</body>
+</html>

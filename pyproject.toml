@@ -1,0 +1,52 @@
+[project]
+name = "zeef"
+version = "0.1.0"
+description = "Open-source convergentietool voor de Woo: van ~1000 semi-relevante documenten naar een navolgbare kernselectie (e-discovery/TAR-aanpak)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "EUPL-1.2" }
+authors = [{ name = "Conduction", email = "info@conduction.nl" }]
+keywords = ["woo", "e-discovery", "tar", "common-ground", "convergence", "audit"]
+
+# Core deps only — enough to import and run the skeleton end to end.
+# Heavier ML/profile-specific deps live in optional extras so `uv sync` stays light
+# and the sovereign/cloud drivers are pulled in only when those stages are implemented.
+dependencies = [
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "typer>=0.12",
+    "rich>=13.7",
+    "openpyxl>=3.1",
+]
+
+[project.optional-dependencies]
+# Local/air-gapped profile: embeddings + cross-encoder reranker + local LLM client.
+sovereign = [
+    "datasketch>=1.6",       # MinHash near-duplicate candidates
+    "pypdf>=4.2",            # digital PDF text extraction
+]
+# Cloud profile: Claude API + hosted embeddings/rerank.
+cloud = [
+    "anthropic>=0.40",
+]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+zeef = "zeef.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/zeef"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

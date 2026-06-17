@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# uv
+# (uv.lock IS committed — it is part of the audit trail)
+
+# Test / tooling
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets — never commit (see CLAUDE.md policy)
+.env
+.env.*
+*.pem
+*.key
+*_rsa
+*.crt
+secrets.yaml
+
+# zeef run outputs (per-run dirs with audit.jsonl, inventory.xlsx, relations.json)
+runs/
+out/
+*.jsonl
+inventory.xlsx
+relations.json
+
+# Local model weights / data (never commit dossiers)
+data/
+models/
+docs-data/
+
+# Hugo docs build
+docs/public/
+docs/resources/
+docs/.hugo_build.lock
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
