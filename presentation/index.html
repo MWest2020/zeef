@@ -98,19 +98,53 @@
         <div class="z-kicker">De pijplijn · één run, negen stages</div>
         <h2>Eén canoniek <code>Document</code>, negen stappen.</h2>
         <div class="z-pipe">
-          <div class="stage"><span class="n">1</span><span class="t">Ingest</span><span class="d">.eml/.msg + digitale PDF</span></div>
-          <div class="stage"><span class="n">2</span><span class="t">Normalize</span><span class="d">naar canoniek model</span></div>
+          <div class="stage llm"><span class="n">1</span><span class="t">Criteria</span><span class="d">zoekvraag → expliciete criteria</span></div>
+          <div class="stage"><span class="n">2</span><span class="t">Ingest + Normalize</span><span class="d">.eml/.msg + PDF → canoniek model</span></div>
           <div class="stage"><span class="n">3</span><span class="t">Relate</span><span class="d">threads + near-dupes</span></div>
           <div class="stage llm"><span class="n">4</span><span class="t">Scope-filter</span><span class="d">regels eerst, LLM bij twijfel</span></div>
         </div>
         <div class="z-pipe">
-          <div class="stage"><span class="n">5–7</span><span class="t">Embed → Retrieve → Rerank</span><span class="d">kandidaten t.o.v. de zoekvraag, precisiepas</span></div>
+          <div class="stage"><span class="n">5–6</span><span class="t">Embed → Retrieve → Rerank</span><span class="d">kandidaten + voor-trim tot top-K</span></div>
+          <div class="stage llm"><span class="n">7</span><span class="t">Score</span><span class="d">LLM scoort top-K + motivatie</span></div>
           <div class="stage"><span class="n">8</span><span class="t">Select</span><span class="d">instelbare cutoff, recall-bias</span></div>
-          <div class="stage out"><span class="n">9</span><span class="t">Export</span><span class="d">xlsx · relations · audit.jsonl</span></div>
+          <div class="stage out"><span class="n">9</span><span class="t">Export</span><span class="d">xlsx · criteria · audit.jsonl</span></div>
         </div>
         <p class="z-lead" style="margin-top:0.9em;">
-          Elke stage is <strong>apart te draaien</strong> en <strong>apart gelogd</strong>.
+          Twee LLM-momenten — <strong>begin</strong> (criteria) en <strong>eind</strong> (scoring) —
+          de rest deterministisch.
           <span class="z-amber">Amber = LLM-stap</span> · <span class="z-accent">groen = deterministisch</span>.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE: Criteria + uitlegbare scoring — de twee LLM-momenten    -->
+      <!-- ============================================================ -->
+      <section class="z-fill" data-background-color="#07121d">
+        <div class="z-kicker z-amber">Waar de AI oordeelt — en het uitlegt</div>
+        <h2>Expliciete <span class="z-amber">criteria</span>, uitlegbare <span class="z-amber">score</span>.</h2>
+        <div class="z-cols" style="margin-top:0.7em;">
+          <div class="z-card">
+            <h3>Begin · criteria-articulatie</h3>
+            <p style="font-size:0.8em; line-height:1.45;">
+              De LLM zet de zoekvraag om in een <strong>benoemde, leesbare set criteria</strong> —
+              de relevantiedefinitie die een beoordelaar kan <em>lezen en betwisten</em>.
+              Geëxporteerd als <code>criteria.json</code>.
+            </p>
+          </div>
+          <div class="z-card">
+            <h3>Eind · scoring met motivatie</h3>
+            <p style="font-size:0.8em; line-height:1.45;">
+              Elk kandidaat-document krijgt een <strong>relevantiescore die de top-X drijft</strong>,
+              mét een motivatie van één zin. Hier bepaalt de AI wat de kern haalt —
+              <strong>met onderbouwing</strong>.
+            </p>
+          </div>
+        </div>
+        <pre class="z-jsonl" style="margin-top:0.8em;"><span class="k">"stage"</span>: <span class="s">"score"</span>, <span class="k">"doc_id"</span>: <span class="s">"b7e2d4…"</span>, <span class="k">"llm_relevance"</span>: <span class="v">0.91</span>,
+<span class="k">"motivatie"</span>: <span class="s">"scoort hoog: bevat publicatie- én geheimhoudingsclausule tussen de genoemde partijen"</span></pre>
+        <p class="z-lead" style="margin-top:0.7em;">
+          De regel: <strong>LLM alleen bij een oordeel zonder mechanische grondwaarheid</strong>,
+          en alleen waar een motivatie de verdedigbaarheid verhoogt. De rest blijft deterministisch.
         </p>
       </section>
 
@@ -222,8 +256,8 @@
           zeef converge ./docs --query "…" --profile sovereign --target 100
         </div>
         <p class="z-lead z-center z-mute" style="margin:0.8em auto 0; font-size:0.85em;">
-          Levert op: de geselecteerde set · <code>inventory.xlsx</code> ·
-          <code>relations.json</code> · <code>audit.jsonl</code>.
+          Levert op: de geselecteerde set · <code>inventory.xlsx</code> (mét motivatie) ·
+          <code>relations.json</code> · <code>criteria.json</code> · <code>audit.jsonl</code>.
         </p>
       </section>
 

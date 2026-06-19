@@ -654,9 +654,11 @@ name = "zeef"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "datasketch" },
     { name = "openpyxl" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pypdf" },
     { name = "rich" },
     { name = "typer" },
 ]
@@ -665,26 +667,28 @@ dependencies = [
 cloud = [
     { name = "anthropic" },
 ]
+
+[package.dev-dependencies]
 dev = [
     { name = "pytest" },
     { name = "ruff" },
-]
-sovereign = [
-    { name = "datasketch" },
-    { name = "pypdf" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "anthropic", marker = "extra == 'cloud'", specifier = ">=0.40" },
-    { name = "datasketch", marker = "extra == 'sovereign'", specifier = ">=1.6" },
+    { name = "datasketch", specifier = ">=1.6" },
     { name = "openpyxl", specifier = ">=3.1" },
     { name = "pydantic", specifier = ">=2.6" },
     { name = "pydantic-settings", specifier = ">=2.2" },
-    { name = "pypdf", marker = "extra == 'sovereign'", specifier = ">=4.2" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pypdf", specifier = ">=4.2" },
     { name = "rich", specifier = ">=13.7" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
     { name = "typer", specifier = ">=0.12" },
 ]
-provides-extras = ["sovereign", "cloud", "dev"]
+provides-extras = ["cloud"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "ruff", specifier = ">=0.5" },
+]

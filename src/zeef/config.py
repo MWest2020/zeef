@@ -12,8 +12,6 @@ from enum import Enum
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from zeef.protocols import LLMProvider
-
 
 class ProfileName(str, Enum):
     cloud = "cloud"
@@ -33,7 +31,25 @@ class Settings(BaseSettings):
 
     anthropic_api_key: str | None = None
     ollama_host: str = "http://localhost:11434"
+    ollama_llm_model: str = "qwen3"
+    ollama_embed_model: str = "qwen3-embedding"
+    # Welke embedding het sovereign-profiel gebruikt: "local" (deterministisch, air-gapped
+    # default) of "ollama" (modelgebaseerd via een lokale server). Reranker blijft lokaal:
+    # Ollama heeft geen rerank-endpoint.
+    sovereign_embed: str = "local"
     recall_bias: float = 0.0  # >0 verschuift twijfelgevallen richting insluiten
+    # LLM-backend losgekoppeld van het profiel, zodat het scope-filter-LLM onafhankelijk te
+    # kiezen is (model-vergelijking): None volgt het profiel ("ollama" bij sovereign, "cloud"
+    # bij cloud); expliciet "ollama" of "cloud" overschrijft dat — embeddings/rerank blijven
+    # van het gekozen profiel. Zo vergelijk je modellen met alle overige variabelen constant.
+    llm_backend: str | None = None
+    # Het Claude-model voor de cloud-LLM (None = driver-default). Bv. een Haiku-model-id.
+    cloud_llm_model: str | None = None
+    # Optioneel pad: append-only JSONL met tokengebruik per cloud-LLM-call (voor kosten).
+    llm_usage_log: str | None = None
+    # Hoeveel reranked kandidaten de LLM-relevantiescoring beoordeelt (0 = alle). Bovengrens op
+    # de LLM-kosten; ruim boven het ~100-target zodat de recall-trechter niet knelt.
+    llm_score_top_k: int = 250
 
 
 class NullLLM:
@@ -48,18 +64,3 @@ class NullLLM:
 
     def complete(self, prompt: str, *, system: str | None = None) -> str:
         raise RuntimeError("LLM-aanroep in --no-llm modus is niet toegestaan")
-
-
-def resolve_llm(profile: ProfileName, no_llm: bool, settings: Settings) -> LLMProvider:
-    """Kies de LLM-provider op basis van profiel en --no-llm.
-
-    Concrete drivers worden lazy geïmporteerd zodat het skelet importeerbaar blijft zonder
-    de profiel-specifieke (zwaardere) dependencies.
-    """
-    if no_llm:
-        return NullLLM()
-    # Concrete drivers volgen in de implementatiefase (tasks 3.3 / 3.4).
-    raise NotImplementedError(
-        f"LLM-driver voor profiel '{profile.value}' nog niet geïmplementeerd "
-        "(zie openspec change converge-mvp, taken 3.3/3.4)."
-    )

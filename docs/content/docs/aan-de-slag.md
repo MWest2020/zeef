@@ -11,14 +11,18 @@ zeef is een Python-project, beheerd met [`uv`](https://docs.astral.sh/uv/).
   Python **3.12+** en `uv`. Gebruik nooit `pip` rechtstreeks — `uv` beheert de venv en de lockfile.
 {{< /callout >}}
 
-Voor het `sovereign`-profiel heb je lokale modellen nodig (Qwen3 via Ollama/vLLM plus een
-embedding- en cross-encoder-model). Het `cloud`-profiel vereist egress naar de Claude API.
+Het `sovereign`-profiel draait standaard volledig air-gapped op **deterministische lokale
+providers** (feature-hashing-embedding + lexicale reranker) — geen modelgewichten of netwerk
+nodig. Wil je modelgebaseerde soevereine drivers, dan staat Qwen3 via Ollama/vLLM achter dezelfde
+interfaces klaar. Het `cloud`-profiel vereist egress naar de Claude API (en een sleutel uit de
+omgeving).
 
 ## Installeren
 
 ```bash
-uv sync --extra dev      # venv + lockfile
-uv run pytest            # tests
+uv sync                  # venv + lockfile, inclusief de dev-toolgroep (pytest, ruff)
+uv run pytest            # tests (volledig offline)
+uv run ruff check        # lint
 uv run zeef --help       # CLI
 ```
 
@@ -39,6 +43,7 @@ zeef converge ./docs --query "..." --profile sovereign --target 100
 | `--target N` | Adaptieve selectie richting ~N documenten (toont de score-"knie"). |
 | `--top-n N` | Exact N documenten. |
 | `--threshold X` | Alles met eindscore ≥ X. |
+| `--score-top-k N` | Aantal reranked kandidaten dat de LLM scoort (`0` = alle). |
 | `--no-llm` | Slaat alle generatieve stappen over — volledig deterministisch. |
 
 ## De resultaten
@@ -47,9 +52,11 @@ Een run schrijft naar een verse run-map:
 
 {{< cards >}}
   {{< card title="inventory.xlsx" icon="table"
-        subtitle="De geselecteerde set: id, score, categorie, samenvatting, reden." >}}
+        subtitle="De geselecteerde set: id, score, categorie, samenvatting, reden, motivatie." >}}
   {{< card title="relations.json" icon="share"
         subtitle="De relatiegraaf (threads, duplicaten, bijlagen)." >}}
+  {{< card title="criteria.json" icon="adjustments"
+        subtitle="De gearticuleerde relevantiecriteria — de inspecteerbare definitie." >}}
   {{< card title="audit.jsonl" icon="document-text"
         subtitle="De volledige audit-log — zie Audit-trail." >}}
 {{< /cards >}}

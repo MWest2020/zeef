@@ -1,0 +1,18 @@
+From: agenda@gemeente.test
+To: team-cultuur@gemeente.test
+Subject: Uitnodiging: overleg subsidie cultuur
+Date: Mon, 09 Feb 2026 08:00:00 +0100
+Message-ID: <inv1@zeef.test>
+Content-Type: text/plain; charset="utf-8"
+
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//gemeente//agenda//NL
+BEGIN:VEVENT
+UID:evt-001@zeef.test
+SUMMARY:Overleg subsidie cultuur
+DTSTART:20260212T090000
+DTEND:20260212T100000
+LOCATION:Stadhuis, kamer 3.10
+END:VEVENT
+END:VCALENDAR

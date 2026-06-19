@@ -33,10 +33,14 @@ class Document(BaseModel):
     text: str                     # genormaliseerde tekst (na OCR waar van toepassing)
     chunks: list[Chunk] = []      # alleen voor embedding/rerank van lange documenten
     relations: list[Relation] = []
-    scores: dict[str, float] = {} # per stage: embed_sim, rerank, final, ...
+    scores: dict[str, float] = {} # per stage: embed_sim, rerank, llm_relevance, final, ...
     decision: Literal["selected", "out_of_scope", "undecided"] = "undecided"
-    decision_reason: str = ""     # leesbare verantwoording
+    decision_reason: str = ""     # leesbare verantwoording (cutoff-rekensom)
+    rationale: str = ""           # per-document relevantie-motivatie (LLM), los van decision_reason
 ```
+
+Daarnaast legt een `Criteria`-model (een lijst `Criterion{label, description}` plus de zoekvraag
+en de bron — `llm` of `fallback`) de gearticuleerde relevantiedefinitie van een run vast.
 
 ### Stabiele, content-geadresseerde id
 
@@ -83,10 +87,32 @@ Een `Profile` (pydantic settings) mapt `--profile` naar een concrete
   {{< card title="cloud" icon="cloud"
         subtitle="Topkwaliteit: Claude API + hosted embeddings/rerank. Vereist egress; alleen waar de omgeving dat toestaat." >}}
   {{< card title="--no-llm" icon="ban"
-        subtitle="Wisselt LLMProvider voor een NullLLM die opwerpt bij gebruik. Scope-filter wordt regels-only, selectie embed+rerank-only — volledig deterministisch." >}}
+        subtitle="Wisselt LLMProvider voor een NullLLM die opwerpt bij gebruik. Criteria valt terug op de ruwe zoekvraag, scope-filter wordt regels-only en de LLM-scoring slaat over (final = rerank) — volledig deterministisch." >}}
 {{< /cards >}}
 
 Geheimen (cloud-API-keys) komen uit env / SOPS+age, **nooit** uit code of configbestanden.
+
+## Waar de LLM zit (en waar niet)
+
+Eén regel bepaalt het: een LLM komt er alleen aan te pas bij **een oordeel onder taalkundige
+ambiguïteit zónder mechanische grondwaarheid, én waar een motivatie de verdedigbaarheid
+verhoogt**. Dat levert precies drie LLM-paden op, elk met de exacte prompt in de
+[audit-trail](../audit-trail):
+
+{{< cards >}}
+  {{< card title="Criteria-articulatie (begin)" icon="adjustments"
+        subtitle="De zoekvraag → een expliciete, benoemde set relevantiecriteria. De geschreven definitie die een beoordelaar kan lezen en betwisten; geëxporteerd als criteria.json." >}}
+  {{< card title="Scope-randgevallen" icon="filter"
+        subtitle="Alleen documenten die geen enkele deterministische regel beslist; een binair RELEVANT / NIET-RELEVANT." >}}
+  {{< card title="Relevantiescoring (eind)" icon="document-search"
+        subtitle="De top-K reranked kandidaten gescoord tegen de criteria: een graduele relevantiescore die de top-X drijft, mét een motivatie per document." >}}
+{{< /cards >}}
+
+Alles met een mechanische grondwaarheid — threads (headers), duplicaten (hash/cosine),
+regel-uitsluiting, chunking, vector-/lexicale retrieval, de cutoff-rekensom — blijft
+deterministisch. De deterministische rerank fungeert als goedkope voor-trim die begrenst hoeveel
+documenten de (duurdere) LLM-scoring bereiken; `--score-top-k` regelt die grens en het aantal
+gescoord-versus-gedemoveerd wordt gelogd.
 
 ## Ontwerprestricties
 

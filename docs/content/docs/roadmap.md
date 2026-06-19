@@ -3,8 +3,10 @@ title: Roadmap
 weight: 6
 ---
 
-De eerste werkende CLI-MVP (`converge-mvp`) dekt de volledige pijplijn van ingest tot export. Een
-aantal capaciteiten is bewust **buiten scope** gehouden voor change #1 en staat gepland als
+De eerste werkende CLI-MVP (`converge-mvp`) dekt de volledige pijplijn van ingest tot export.
+Change #2 (`criteria-scoring`) is daar bovenop **geïmplementeerd**: criteria-articulatie aan het
+begin en LLM-relevantiescoring met een motivatie per document aan het eind, met een deterministisch
+midden. Een aantal capaciteiten is bewust **buiten scope** gehouden en staat gepland als
 vervolg-change. De bron is `openspec/changes/` in de repo.
 
 {{< callout type="info" >}}

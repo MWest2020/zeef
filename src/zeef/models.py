@@ -7,17 +7,23 @@ Zie design.md (D1, D2, D3) voor de rationale.
 
 from __future__ import annotations
 
-import hashlib
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+# De id-afleiding leeft in een losstaand, afhankelijkheidsvrij module (zie zeef/ids.py),
+# zodat een ander repo het `doc_id`-contract kan importeren zonder de pijplijn. Hier
+# her-exporteren we het voor bestaande imports (`from zeef.models import content_id`).
+from zeef.ids import ID_LENGTH, content_id
+
+__all__ = [
+    "Chunk", "Relation", "Document", "Criterion", "Criteria",
+    "content_id", "ID_LENGTH",
+]
+
 DocType = Literal["email", "pdf_digital", "pdf_scanned", "office", "other"]
 RelationKind = Literal["thread-parent", "attachment-of", "duplicate-of", "overlaps-with"]
 Decision = Literal["selected", "out_of_scope", "undecided"]
-
-# Aantal hex-tekens van de content-hash dat als id wordt gebruikt (D2).
-ID_LENGTH = 16
 
 
 class Chunk(BaseModel):
@@ -54,6 +60,7 @@ class Document(BaseModel):
     scores: dict[str, float] = Field(default_factory=dict)
     decision: Decision = "undecided"
     decision_reason: str = ""
+    rationale: str = ""  # per-document relevantie-motivatie (LLM); los van decision_reason
 
     def add_relation(self, kind: RelationKind, target_id: str, evidence: str) -> None:
         """Voeg een relatie toe (idempotent op (kind, target_id))."""
@@ -63,15 +70,24 @@ class Document(BaseModel):
         self.relations.append(Relation(kind=kind, target_id=target_id, evidence=evidence))
 
 
-def content_id(normalized_text: str, source_path: str) -> str:
-    """Deterministische, content-geadresseerde id (D2).
+class Criterion(BaseModel):
+    """Eén expliciet, benoembaar relevantiecriterium (label + omschrijving)."""
 
-    Hash van genormaliseerde tekst + herkomstpad. Een herhaalde run levert dezelfde id
-    (reproduceerbaarheid); exacte dubbelingen vallen op omdat de tekst gelijk is, terwijl
-    het herkomstpad twee echt verschillende bestanden met dezelfde tekst onderscheidbaar houdt.
+    label: str
+    description: str
+
+
+class Criteria(BaseModel):
+    """De gearticuleerde relevantiedefinitie van een run — de toetssteen voor scoring.
+
+    `source` is `"llm"` wanneer een LLM de criteria afleidde, of `"fallback"` wanneer er
+    onder `--no-llm` één criterium gelijk aan de ruwe zoekvraag is gemaakt.
     """
-    digest = hashlib.sha256()
-    digest.update(normalized_text.encode("utf-8"))
-    digest.update(b"\x00")
-    digest.update(source_path.encode("utf-8"))
-    return digest.hexdigest()[:ID_LENGTH]
+
+    query: str
+    items: list[Criterion] = Field(default_factory=list)
+    source: Literal["llm", "fallback"] = "fallback"
+
+    def as_prompt_block(self) -> str:
+        """Criteria als genummerde regels voor in een scoring-prompt."""
+        return "\n".join(f"{i}. {c.label}: {c.description}" for i, c in enumerate(self.items, 1))

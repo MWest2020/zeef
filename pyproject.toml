@@ -8,27 +8,29 @@ license = { text = "EUPL-1.2" }
 authors = [{ name = "Conduction", email = "info@conduction.nl" }]
 keywords = ["woo", "e-discovery", "tar", "common-ground", "convergence", "audit"]
 
-# Core deps only — enough to import and run the skeleton end to end.
-# Heavier ML/profile-specific deps live in optional extras so `uv sync` stays light
-# and the sovereign/cloud drivers are pulled in only when those stages are implemented.
+# Core deps — enough to run the default (sovereign) pipeline air-gapped, end to end.
+# The sovereign profile is the MVP default, so its deterministic-local building blocks
+# (digital-PDF extraction, MinHash near-dup candidates) are core, not optional. Only the
+# truly profile-specific cloud client (anthropic) stays behind an extra.
 dependencies = [
     "pydantic>=2.6",
     "pydantic-settings>=2.2",
     "typer>=0.12",
     "rich>=13.7",
     "openpyxl>=3.1",
+    "pypdf>=4.2",            # digital PDF text extraction
+    "datasketch>=1.6",       # MinHash near-duplicate candidates (pulls numpy/scipy)
 ]
 
 [project.optional-dependencies]
-# Local/air-gapped profile: embeddings + cross-encoder reranker + local LLM client.
-sovereign = [
-    "datasketch>=1.6",       # MinHash near-duplicate candidates
-    "pypdf>=4.2",            # digital PDF text extraction
-]
-# Cloud profile: Claude API + hosted embeddings/rerank.
+# Cloud profile: Claude API LLM + hosted embeddings/rerank (key-gated, not live-tested).
 cloud = [
     "anthropic>=0.40",
 ]
+
+# Dev tooling as a PEP 735 dependency group, so `uv run pytest` and `uv run ruff check`
+# work after a plain `uv sync` — no `--with` / `--extra` needed.
+[dependency-groups]
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",
