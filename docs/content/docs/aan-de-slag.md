@@ -44,6 +44,7 @@ zeef converge ./docs --query "..." --profile sovereign --target 100
 | `--top-n N` | Exact N documenten. |
 | `--threshold X` | Alles met eindscore ≥ X. |
 | `--score-top-k N` | Aantal reranked kandidaten dat de LLM scoort (`0` = alle). |
+| `--near-dup X` | Cosinus-drempel voor near-duplicates (default `0.9`; lager = agressiever samenvouwen). |
 | `--no-llm` | Slaat alle generatieve stappen over — volledig deterministisch. |
 
 ## De resultaten

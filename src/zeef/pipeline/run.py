@@ -16,7 +16,7 @@ from zeef.export import write_criteria, write_inventory, write_relations
 from zeef.models import Criteria, Document
 from zeef.pipeline.criteria import articulate_criteria
 from zeef.pipeline.ingest import ingest
-from zeef.pipeline.relate import relate
+from zeef.pipeline.relate import DEFAULT_NEAR_DUP_THRESHOLD, relate
 from zeef.pipeline.rerank import rerank
 from zeef.pipeline.retrieve import retrieve
 from zeef.pipeline.score import score
@@ -53,6 +53,7 @@ def run_converge(
     *,
     recall_bias: float = 0.0,
     score_top_k: int = 0,
+    near_dup_threshold: float = DEFAULT_NEAR_DUP_THRESHOLD,
     progress=None,
 ) -> RunResult:
     """Draai de volledige convergentie en schrijf de artefacten naar `out_dir`."""
@@ -65,7 +66,7 @@ def run_converge(
     step("ingest")
     docs = ingest(docs_dir, audit)
     step("relate")
-    relate(docs, providers.embed, audit)
+    relate(docs, providers.embed, audit, near_dup_threshold=near_dup_threshold)
     step("scope-filter")
     scope_filter(docs, providers, audit, query)
     step("retrieve")

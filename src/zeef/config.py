@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     # Ollama heeft geen rerank-endpoint.
     sovereign_embed: str = "local"
     recall_bias: float = 0.0  # >0 verschuift twijfelgevallen richting insluiten
+    # Cosinus-drempel waarboven een MinHash-kandidaatpaar als near-duplicate geldt (relate-stage).
+    # Lager = agressiever samenvouwen (recall-risico op thematisch-verwante docs); hoger = alleen
+    # vrijwel-identieke stukken vouwen. Default 0.9; stem af op de echte dataset.
+    near_dup_threshold: float = 0.9
     # LLM-backend losgekoppeld van het profiel, zodat het scope-filter-LLM onafhankelijk te
     # kiezen is (model-vergelijking): None volgt het profiel ("ollama" bij sovereign, "cloud"
     # bij cloud); expliciet "ollama" of "cloud" overschrijft dat — embeddings/rerank blijven

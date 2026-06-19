@@ -46,7 +46,11 @@ Pluggable loaders achter een `Loader`-protocol lezen `.eml`/`.msg` (headers beho
 PDF; alles wordt genormaliseerd naar één `Document` (zie [Architectuur](../architectuur)). Eén
 `.eml` kan meerdere documenten opleveren (body + bijlagen). Relate bouwt mailthreads uit
 RFC 5322-headers en near-duplicates (MinHash/SimHash, bevestigd door embedding-cosine; exacte
-duplicaten via de content-hash), vastgelegd als getypeerde `Relation`s met *evidence*.
+duplicaten via de content-hash), vastgelegd als getypeerde `Relation`s met *evidence*. De
+near-duplicate-drempel (de cosinus-grens waarboven twee documenten als bijna-dubbel gelden) is
+instelbaar met `--near-dup` (default `0.9`): lager vouwt agressiever samen — met recall-risico op
+thematisch-verwante maar onderscheiden documenten — hoger laat alleen vrijwel-identieke stukken
+samenvallen. Stem af op de dataset.
 
 ### 4 · Scope-filter
 

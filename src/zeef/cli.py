@@ -61,6 +61,7 @@ def converge(
     target: int | None = typer.Option(None, "--target"),
     recall_bias: float = typer.Option(0.0, "--recall-bias", help="Verschuif grensgevallen richting insluiten."),
     score_top_k: int | None = typer.Option(None, "--score-top-k", help="Aantal reranked kandidaten dat de LLM scoort (0 = alle)."),
+    near_dup: float | None = typer.Option(None, "--near-dup", help="Cosinus-drempel voor near-duplicates (lager = agressiever samenvouwen)."),
     out: Path | None = typer.Option(None, "--out", help="Uitvoermap voor deze run."),
 ) -> None:
     """Draai de convergentie over `docs` en lever inventory/relations/criteria/audit op."""
@@ -69,12 +70,14 @@ def converge(
     out_dir = out if out is not None else _default_out()
     settings = Settings()
     top_k = settings.llm_score_top_k if score_top_k is None else score_top_k
+    near_dup_threshold = settings.near_dup_threshold if near_dup is None else near_dup
     providers = resolve_providers(profile, no_llm, settings)
     audit = AuditLog(out_dir / "audit.jsonl")
     audit.event("cli", "run-start", inputs={
         "docs": str(docs), "query": query, "profile": profile.value, "no_llm": no_llm,
         "cutoff_mode": mode.value, "cutoff_value": value, "recall_bias": recall_bias,
-        "score_top_k": top_k, "cutoff_defaulted": cutoff_defaulted,
+        "score_top_k": top_k, "near_dup_threshold": near_dup_threshold,
+        "cutoff_defaulted": cutoff_defaulted,
     })
     console.print(f"[bold]zeef {__version__}[/] — profiel [cyan]{profile.value}[/]"
                   f"{' [yellow](--no-llm)[/]' if no_llm else ''}")
@@ -82,6 +85,7 @@ def converge(
         console.print(f"[dim]geen cutoff opgegeven → default {mode.value}={value}[/]")
     result = run_converge(docs, query, providers, mode, value, out_dir, audit,
                           recall_bias=recall_bias, score_top_k=top_k,
+                          near_dup_threshold=near_dup_threshold,
                           progress=lambda s: console.print(f"  [dim]→[/] {s}"))
     _summary(result, mode, value)
 

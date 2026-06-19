@@ -6,6 +6,26 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-19 — near-dup-drempel instelbaar (`--near-dup`) + recall-bevinding op echt dossier
+
+**Wat (per bestand):** de near-duplicate-cosinusdrempel was hardcoded op 0,9 in `relate()`. Nu
+instelbaar via `config.py` (`near_dup_threshold` / `ZEEF_NEAR_DUP_THRESHOLD`), doorgegeven door
+`run.py` (`run_converge(..., near_dup_threshold=)`) en de CLI-vlag `--near-dup`. `run-start`-audit
+logt de waarde. Docs (`aan-de-slag.md`, `de-pijplijn.md`) bijgewerkt.
+
+**Waarom + bevinding:** afgestemd op het echte dossier `nl.ab3.2i.2023.1` (6 echte kern-docs in
+een corpus van 1.006). Sweep over drempels 0,80–0,99, deterministisch (`--no-llm`, om dedup van
+LLM-ruis te isoleren): **de 6 echte kern-docs overleven bij élke drempel (6/6) en geen enkele
+wordt als near-duplicate gevouwen.** De drempel regelt hier alleen hoeveel synthetische
+thread/dup-ruis samenvouwt (18 kandidaten bij 0,80 → 130 bij 0,99). Conclusie: op dit dossier is
+de near-dup-drempel **geen** recall-hefboom; 0,9 is veilig voor de kern. Dit corrigeert de eerdere
+hypothese dat over-dedup recall kostte.
+
+**De échte recall-bottleneck (gemeten):** de binaire scope-filter-LLM (qwen2.5:7b) zette 4 van de
+6 echte samenwerkingsovereenkomsten ten onrechte op NIET-RELEVANT; de 2 die er doorheen kwamen
+scoorden 0,95. De recall-hefboom voor 26 juni is dus het scope-filter-model/-prompt (of een
+zachtere scope-policy), niet dedup. `pytest` 67 passed / 1 skipped; `ruff` schoon.
+
 ### 2026-06-19 — change #2 (`criteria-scoring`): twee LLM-momenten met motivatie
 
 **Waarom:** de relevantie in change #1 was dun en lastig te verdedigen — een kale zoekvraag (de
