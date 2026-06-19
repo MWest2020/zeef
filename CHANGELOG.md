@@ -6,6 +6,24 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-19 — scope-filter-LLM recall-georiënteerd (UITSLUITEN/BEHOUDEN)
+
+**Wat (`scope_filter.py`):** de LLM-twijfelstap was precisie-gericht (sloot uit op NIET-RELEVANT).
+Nu recall-georiënteerd, conform de TAR-filosofie van het project: de LLM sluit **alléén** uit wat
+met zekerheid buiten scope valt (eerste woord `UITSLUITEN`) en behoudt al het andere; de
+precisie-verfijning gebeurt later in de relevantiescoring. Recall-veilige parse (`_is_exclude_verdict`:
+alleen het eerste woord telt, "niet uitsluiten"/leeg → behouden). System+prompt herschreven.
+
+**Waarom + gemeten effect:** op het echte dossier `nl.ab3.2i.2023.1` (6 kern-docs in 1.006) zette
+de oude filter (qwen2.5:7b) 4 van de 6 echte overeenkomsten ten onrechte op NIET-RELEVANT — maar
+2/6 haalden de scoring. Met de recall-filter: scope-LLM gaf 21× BEHOUDEN, 1× UITSLUITEN →
+**5 van de 6 echte docs halen nu de scoring** (doc.1/5/6 hersteld; alleen doc.2 nog uitgesloten).
+De scoring differentieert ze daarna (0,95 / 0,75 / 0,65 / 0,2). Afruil: recall omhoog kost
+LLM-tijd (9 min vs 4,5 min op 1.006 docs — meer overlevenden = meer scoring-calls).
+
+**Tests/docs:** `test_scope_filter.py` uitgebreid (recall-veilige verdict-parse; UITSLUITEN sluit
+uit). `de-pijplijn.md` + `architectuur.md` bijgewerkt. `pytest` 69 passed / 1 skipped; `ruff` schoon.
+
 ### 2026-06-19 — near-dup-drempel instelbaar (`--near-dup`) + recall-bevinding op echt dossier
 
 **Wat (per bestand):** de near-duplicate-cosinusdrempel was hardcoded op 0,9 in `relate()`. Nu

@@ -56,8 +56,10 @@ samenvallen. Stem af op de dataset.
 
 Een geordende lijst **deterministische regels** draait eerst (forwarded-only, agenda-uitnodiging,
 procesnotificatie, thread-tail, duplicaat). Alleen documenten die geen enkele regel beslist gaan
-naar de LLM, en alleen in niet-`--no-llm` runs. Elke beslissing — regel of LLM — schrijft een
-leesbare `decision_reason` en een audit-event.
+naar de LLM, en alleen in niet-`--no-llm` runs. Die LLM-stap is **recall-georiënteerd**: hij sluit
+alléén uit wat met zekerheid buiten scope valt (`UITSLUITEN`) en behoudt twijfelgevallen — de
+precisie-verfijning gebeurt later in de relevantiescoring. Elke beslissing — regel of LLM —
+schrijft een leesbare `decision_reason` en een audit-event.
 
 ### 5–6 · Embed → Retrieve → Rerank (het deterministische midden)
 

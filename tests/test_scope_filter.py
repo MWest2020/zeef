@@ -74,6 +74,36 @@ def test_no_llm_leaves_residue_undecided(corpus, audit):
     assert skipped
 
 
+def test_llm_scope_is_recall_oriented():
+    from zeef.pipeline.scope_filter import _is_exclude_verdict
+
+    # Alleen een expliciet 'UITSLUITEN' sluit uit; al het andere behoudt (recall-veilig).
+    assert _is_exclude_verdict("UITSLUITEN")
+    assert _is_exclude_verdict("uitsluiten: ander onderwerp")
+    assert not _is_exclude_verdict("BEHOUDEN")
+    assert not _is_exclude_verdict("Niet uitsluiten")  # twijfel → behouden
+    assert not _is_exclude_verdict("")  # leeg → behouden
+
+
+def test_llm_excludes_only_on_uitsluiten(corpus, audit):
+    docs = ingest(corpus, audit)
+    relate(docs, HashingEmbed(), audit)
+
+    class ExcludeAll:
+        name = "fake-llm"
+        location = "local"
+
+        def complete(self, prompt, *, system=None):
+            return "UITSLUITEN"
+
+    bundle = ProviderBundle(llm=ExcludeAll(), embed=HashingEmbed(),
+                            reranker=_bundle().reranker, no_llm=False)
+    scope_filter(docs, bundle, audit, query="iets totaal anders")
+    # Met UITSLUITEN belandt het hele residu out_of_scope met de juiste reden.
+    excluded = [d for d in docs if d.decision == "out_of_scope" and "UITSLUITEN" in d.decision_reason]
+    assert excluded
+
+
 def test_llm_fallback_only_for_residue_and_logs_prompt(corpus, audit):
     docs, _ = _prepared(corpus, audit)
 

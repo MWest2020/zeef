@@ -2,8 +2,10 @@
 
 De geordende regelset (`scope_rules.RULES`) beslist deterministisch en goedkoop. Alleen
 documenten die geen enkele regel beslist gaan naar de LLM, en alleen als er een LLM-provider
-is (niet onder `--no-llm`). Elke beslissing — regel of LLM — krijgt een `decision_reason` en
-een audit-event; LLM-events bevatten de exacte prompt, het model en de locatie.
+is (niet onder `--no-llm`). De LLM-stap is **recall-georiënteerd**: hij sluit alleen uit wat met
+zekerheid buiten scope valt en behoudt twijfelgevallen (de precisie-verfijning gebeurt later in
+de relevantiescoring). Elke beslissing — regel of LLM — krijgt een `decision_reason` en een
+audit-event; LLM-events bevatten de exacte prompt, het model en de locatie.
 """
 
 from __future__ import annotations
@@ -16,8 +18,10 @@ from zeef.profiles import ProviderBundle
 STAGE = "scope-filter"
 
 _LLM_SYSTEM = (
-    "Je bent een hulp bij een Woo-verzoek. Bepaal of een document relevant kan zijn voor de "
-    "zoekvraag. Antwoord met exact één woord: RELEVANT of NIET-RELEVANT."
+    "Je bent een hulp bij een Woo-verzoek. Recall gaat vóór precisie: sluit een document "
+    "alléén uit als het met zekerheid buiten de zoekvraag valt; bij enige twijfel behoud je het "
+    "(de verfijning gebeurt later in de relevantiescoring). Antwoord met exact één woord: "
+    "UITSLUITEN of BEHOUDEN."
 )
 
 
@@ -26,8 +30,15 @@ def _llm_prompt(query: str, doc: Document) -> str:
     return (
         f"Zoekvraag: {query}\n\n"
         f"Document ({doc.doc_type}):\n{snippet}\n\n"
-        "Kan dit document relevant zijn voor de zoekvraag? Antwoord RELEVANT of NIET-RELEVANT."
+        "Valt dit document met zekerheid buiten de zoekvraag? Antwoord UITSLUITEN alleen als het "
+        "duidelijk een ander onderwerp betreft; bij twijfel BEHOUDEN."
     )
+
+
+def _is_exclude_verdict(verdict: str) -> bool:
+    """Recall-veilig: alleen uitsluiten als het eerste woord 'uitsluiten' is (anders behouden)."""
+    tokens = verdict.strip().lower().split()
+    return bool(tokens) and tokens[0].startswith("uitsluiten")
 
 
 def scope_filter(
@@ -74,7 +85,7 @@ def _llm_fallback(
     for doc in residue:
         prompt = _llm_prompt(query, doc)
         verdict = llm.complete(prompt, system=_LLM_SYSTEM)
-        out_of_scope = "niet-relevant" in verdict.strip().lower()
+        out_of_scope = _is_exclude_verdict(verdict)
         audit.event(
             STAGE, "llm-decision", document_ids=[doc.id],
             model=getattr(llm, "name", "?"), location=getattr(llm, "location", "?"),
@@ -82,4 +93,4 @@ def _llm_fallback(
         )
         if out_of_scope:
             doc.decision = "out_of_scope"
-            doc.decision_reason = f"LLM-oordeel NIET-RELEVANT voor zoekvraag (model {getattr(llm, 'name', '?')})"
+            doc.decision_reason = f"LLM-oordeel: met zekerheid buiten scope (UITSLUITEN, model {getattr(llm, 'name', '?')})"

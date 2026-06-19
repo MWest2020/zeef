@@ -103,7 +103,7 @@ verhoogt**. Dat levert precies drie LLM-paden op, elk met de exacte prompt in de
   {{< card title="Criteria-articulatie (begin)" icon="adjustments"
         subtitle="De zoekvraag → een expliciete, benoemde set relevantiecriteria. De geschreven definitie die een beoordelaar kan lezen en betwisten; geëxporteerd als criteria.json." >}}
   {{< card title="Scope-randgevallen" icon="filter"
-        subtitle="Alleen documenten die geen enkele deterministische regel beslist; een binair RELEVANT / NIET-RELEVANT." >}}
+        subtitle="Alleen documenten die geen enkele deterministische regel beslist; recall-georiënteerd — UITSLUITEN alleen bij zekerheid, twijfel BEHOUDEN." >}}
   {{< card title="Relevantiescoring (eind)" icon="document-search"
         subtitle="De top-K reranked kandidaten gescoord tegen de criteria: een graduele relevantiescore die de top-X drijft, mét een motivatie per document." >}}
 {{< /cards >}}
