@@ -73,3 +73,18 @@ def test_heuristic_fallback_marks_evidence(audit, tmp_path):
     relate(docs, HashingEmbed(), audit)
     rels = [r for d in docs for r in d.relations if r.kind == "thread-parent"]
     assert rels and all("heuristisch" in r.evidence for r in rels)
+
+
+def test_heuristic_threads_handle_mixed_timezone_dates(audit):
+    """Echte e-mail mengt tz-aware en -naïeve Date-headers; sorteren mag niet crashen."""
+    from zeef.models import Document
+    from zeef.pipeline.threads import _date, reconstruct_threads
+
+    # Geen headers/Message-ID → heuristiek op onderwerp; één datum mét tz, één zonder.
+    aware = Document(id="a", source_path="/a.eml", doc_type="email", text="x",
+                     metadata={"Subject": "Olympic bid", "Date": "Mon, 15 Sep 2001 18:23:00 +0200"})
+    naive = Document(id="b", source_path="/b.eml", doc_type="email", text="y",
+                     metadata={"Subject": "Olympic bid", "Date": "Mon, 15 Sep 2001 12:00:00"})
+    assert _date(aware).tzinfo is not None and _date(naive).tzinfo is not None
+    reconstruct_threads([aware, naive], audit)  # wierp voorheen TypeError
+    assert any(r.kind == "thread-parent" for r in (aware.relations + naive.relations))

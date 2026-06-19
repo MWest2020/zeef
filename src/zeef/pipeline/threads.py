@@ -33,11 +33,18 @@ def _norm_subject(subject: str) -> str:
 
 
 def _date(doc: Document) -> datetime:
+    """Altijd tz-aware (naïeve datum → UTC), zodat sorteren nooit aware/naïef mengt.
+
+    Echte e-mail bevat zowel tijdzone-bewuste als -loze Date-headers; ze samen sorteren wierp
+    voorheen `TypeError: can't compare offset-naive and offset-aware datetimes`.
+    """
     try:
         dt = parsedate_to_datetime(doc.metadata.get("Date", ""))
-        return dt if dt is not None else datetime.min.replace(tzinfo=timezone.utc)
     except (TypeError, ValueError):
+        dt = None
+    if dt is None:
         return datetime.min.replace(tzinfo=timezone.utc)
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
 
 
 def reconstruct_threads(docs: list[Document], audit: AuditLog) -> None:

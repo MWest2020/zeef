@@ -6,6 +6,18 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-19 — fix: thread-heuristiek crashte op gemengde tijdzones in echte e-mail
+
+**Waarom:** een run over een echt e-mailcorpus (HiCAL/TREC Total Recall, topic 407, 2.719 docs)
+crashte in de thread-heuristiek: `TypeError: can't compare offset-naive and offset-aware
+datetimes`. Echte e-mail mengt `Date`-headers mét en zónder tijdzone; `_date` gaf bij parse soms
+een naïeve, soms een aware datetime, en het sorteren van een onderwerp-groep mengde die.
+
+**Wat (1 bestand):** `src/zeef/pipeline/threads.py` — `_date` geeft nu **altijd** een tz-aware
+datum (naïef → UTC). Test toegevoegd (`test_relate.py`: gemengde tz-headers sorteren zonder
+crash). Raakt alleen de heuristische val-terug (header-loze mail); bestaande threads ongemoeid.
+`pytest` 70 passed / 1 skipped; `ruff` schoon.
+
 ### 2026-06-19 — scope-filter-LLM recall-georiënteerd (UITSLUITEN/BEHOUDEN)
 
 **Wat (`scope_filter.py`):** de LLM-twijfelstap was precisie-gericht (sloot uit op NIET-RELEVANT).
