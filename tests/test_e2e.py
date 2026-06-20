@@ -49,6 +49,23 @@ def test_three_artifacts_present(corpus, tmp_path, no_network):
     assert result.counts()["selected"] > 0
 
 
+def test_run_manifest_records_stage_runtimes(corpus, tmp_path, no_network):
+    result, _ = _run(corpus, tmp_path)
+    path = tmp_path / "run-manifest.json"
+    assert path.exists()
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    assert manifest["schema"] == "zeef-run-manifest/1"
+    assert manifest["query"] == QUERY
+    assert isinstance(manifest["runtime_ms"]["total"], (int, float))
+    stages = {s["stage"] for s in manifest["runtime_ms"]["stages"]}
+    expected = {"criteria", "ingest", "relate", "scope-filter",
+                "retrieve", "rerank", "score", "select", "export"}
+    assert expected <= stages
+    assert all(isinstance(s["elapsed_ms"], (int, float)) for s in manifest["runtime_ms"]["stages"])
+    # Het manifest moet ook op het RunResult beschikbaar zijn voor de CLI-samenvatting.
+    assert result.manifest is not None and result.manifest["runtime_ms"]["stages"]
+
+
 def test_five_mail_thread_collapses_to_one_unit(corpus, tmp_path, no_network):
     result, _ = _run(corpus, tmp_path)
     by_name = _by_name(result)

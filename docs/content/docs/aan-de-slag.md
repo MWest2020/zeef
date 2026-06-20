@@ -58,6 +58,8 @@ Een run schrijft naar een verse run-map:
         subtitle="De relatiegraaf (threads, duplicaten, bijlagen)." >}}
   {{< card title="criteria.json" icon="adjustments"
         subtitle="De gearticuleerde relevantiecriteria — de inspecteerbare definitie." >}}
+  {{< card title="run-manifest.json" icon="clock"
+        subtitle="Run-parameters en de vastgelegde per-stage runtimes." >}}
   {{< card title="audit.jsonl" icon="document-text"
         subtitle="De volledige audit-log — zie Audit-trail." >}}
 {{< /cards >}}

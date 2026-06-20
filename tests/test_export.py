@@ -4,7 +4,13 @@ import json
 
 from openpyxl import load_workbook
 
-from zeef.export import INVENTORY_COLUMNS, write_criteria, write_inventory, write_relations
+from zeef.export import (
+    INVENTORY_COLUMNS,
+    write_criteria,
+    write_inventory,
+    write_manifest,
+    write_relations,
+)
 from zeef.models import Criteria, Criterion, Document
 
 
@@ -50,6 +56,19 @@ def test_no_llm_leaves_summary_empty(tmp_path):
     ws = load_workbook(write_inventory(docs, tmp_path / "inv.xlsx")).active
     summary_idx = INVENTORY_COLUMNS.index("summary")
     assert [c.value for c in ws[2]][summary_idx] in ("", None)
+
+
+def test_manifest_exported_as_json(tmp_path):
+    manifest = {
+        "schema": "zeef-run-manifest/1",
+        "query": "begroting subsidie cultuur 2026",
+        "runtime_ms": {"total": 12.3, "stages": [{"stage": "ingest", "elapsed_ms": 4.2}]},
+    }
+    path = write_manifest(manifest, tmp_path / "run-manifest.json")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["schema"] == "zeef-run-manifest/1"
+    assert data["runtime_ms"]["total"] == 12.3
+    assert data["runtime_ms"]["stages"][0]["stage"] == "ingest"
 
 
 def test_relations_exported_as_graph(tmp_path):

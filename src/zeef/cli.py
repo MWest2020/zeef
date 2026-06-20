@@ -102,8 +102,12 @@ def _summary(result, mode: CutoffMode, value) -> None:
     console.print(f"criteria ([cyan]{crit.source}[/]): {len(crit.items)} — "
                   + ", ".join(c.label for c in crit.items[:6]))
     console.print(f"cutoff: [green]{mode.value}={value}[/]")
+    if result.manifest is not None:
+        total_ms = result.manifest["runtime_ms"]["total"]
+        console.print(f"runtime: [magenta]{total_ms / 1000:.1f}s[/] totaal "
+                      "(per-stage in run-manifest.json)")
     console.print(f"uitvoer in [blue]{result.out_dir}[/]: "
-                  "inventory.xlsx, relations.json, criteria.json, audit.jsonl")
+                  "inventory.xlsx, relations.json, criteria.json, run-manifest.json, audit.jsonl")
 
 
 @app.command()

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from openpyxl import Workbook
 
@@ -45,6 +46,15 @@ def write_criteria(criteria: Criteria, path: Path) -> Path:
         criteria.model_dump_json(indent=2),
         encoding="utf-8",
     )
+    return path
+
+
+def write_manifest(manifest: dict[str, Any], path: Path) -> Path:
+    """Schrijf het run-manifest naar `run-manifest.json`: de vastgelegde runtimes per stage en
+    de run-parameters (zoekvraag, providers/model/locatie, criteria-bron, cutoff, telling). Maakt
+    een run navolgbaar en vergelijkbaar zónder de volledige audit-log te hoeven herleiden."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
 

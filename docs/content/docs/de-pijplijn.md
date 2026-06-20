@@ -20,7 +20,7 @@ houdt de hele tussenliggende keten deterministisch.
 | 6 | **Rerank** | Deterministische precisiepas; bepaalt welke top-K naar de LLM-scoring gaat. | nee |
 | 7 | **Score** | LLM scoort de top-K tegen de criteria: relevantiescore **én** motivatie per document. | **LLM (eind)** |
 | 8 | **Select** | Instelbare cutoff (`--top-n` / `--threshold` / `--target`), recall-gericht. | nee |
-| 9 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `audit.jsonl`. | nee |
+| 9 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `run-manifest.json`, `audit.jsonl`. | nee |
 
 {{< callout type="info" >}}
   **De regel voor wel/niet LLM.** Een LLM komt er alleen aan te pas bij een oordeel onder
@@ -105,4 +105,5 @@ zeef levert op:
 - **`inventory.xlsx`** — id, score, categorie, samenvatting, reden, **motivatie**.
 - **`relations.json`** — de relatiegraaf.
 - **`criteria.json`** — de gearticuleerde relevantiecriteria (de inspecteerbare definitie).
+- **`run-manifest.json`** — run-parameters (zoekvraag, providers/model, cutoff) en de vastgelegde per-stage runtimes.
 - **`audit.jsonl`** — de volledige [audit-trail](../audit-trail).

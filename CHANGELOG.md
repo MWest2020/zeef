@@ -6,6 +6,31 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-20 — feat: runtimes vastleggen — per-stage timing + run-manifest.json (vierde artefact)
+
+**Waarom:** de audit-log had per event een `ts`, maar geen *bedoelde* meting van hoe lang een
+stage duurde — runtimes waren hooguit af te leiden door timestamps te diffen. Voor het vergelijken
+van runs (en profielen/modellen) en voor een navolgbaar prestatiebeeld is expliciete vastlegging
+nodig.
+
+**Wat (3 bestanden):**
+- `src/zeef/pipeline/run.py` — elke stage wordt nu omhuld door een monotone `perf_counter`-timer
+  (immuun voor klok-aanpassingen). Per stage komt er één `timing`-event in de audit-log
+  (`elapsed_ms`), en aan het eind wordt een **`run-manifest.json`** weggeschreven: schema-versie,
+  zoekvraag, providers (model + locatie per rol), criteria-bron + labels, cutoff, parameters,
+  documenttelling en `runtime_ms` (totaal + per stage). Het manifest hangt ook op `RunResult`.
+- `src/zeef/export.py` — `write_manifest()` (zelfde stijl als `write_relations`).
+- `src/zeef/cli.py` — samenvatting toont totale runtime en noemt het vierde artefact.
+
+**Tests:** `test_export.py::test_manifest_exported_as_json` en
+`test_e2e.py::test_run_manifest_records_stage_runtimes` (alle 9 stages aanwezig met `elapsed_ms`,
+totaal aanwezig, manifest op `RunResult`). `pytest` 72 passed / 1 skipped; `ruff` schoon.
+
+**Eerste echte run (Woo):** dossier `nl.ab3.2i.2023.1` (UvA Woo-besluit "Innovation Center for
+Artificial Intelligence", 7 PDF's uit de WooZM/`pid.wooverheid.nl`-cache van `zeef-eval`),
+sovereign-profiel met Ollama (`qwen2.5:7b` + `qwen3-embedding:0.6b`). Levert echte gearticuleerde
+criteria + gemeten per-stage runtimes op.
+
 ### 2026-06-19 — fix: thread-heuristiek crashte op gemengde tijdzones in echte e-mail
 
 **Waarom:** een run over een echt e-mailcorpus (HiCAL/TREC Total Recall, topic 407, 2.719 docs)
