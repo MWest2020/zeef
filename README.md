@@ -50,7 +50,13 @@ Eén pijplijn, alleen de drivers verschillen — geselecteerd met `--profile`:
   Ollama/vLLM) staan achter dezelfde interfaces en zijn te kiezen zodra gewichten klaarstaan.
 - **`cloud`** — topmodel voor maximale kwaliteit (Claude API + hosted embeddings/rerank). Vereist
   egress; constructie kan zonder sleutel, maar elke echte call is gated op een API-sleutel uit de
-  omgeving. Nog niet live getest.
+  omgeving.
+
+De Claude-LLM kent twee authenticatie-modi. Standaard een **API-sleutel** (`ANTHROPIC_API_KEY`,
+pay-per-token). Met `--subscription` draait de LLM via je **Claude-abonnement** (OAuth, eenmalig
+`ant auth login`); dat impliceert de cloud-LLM maar laat embeddings/rerank van het gekozen profiel
+staan — bv. lokale Ollama-embeddings + Claude-LLM. In abonnement-modus wordt een eventuele
+`ANTHROPIC_API_KEY` uit de omgeving verwijderd, zodat die nooit per ongeluk credits verbruikt.
 
 `--no-llm` slaat alle generatieve stappen over: criteria valt terug op de ruwe zoekvraag en de
 selectie loopt puur op embedding + rerank — de maximaal-soevereine, air-gapped-veilige modus die

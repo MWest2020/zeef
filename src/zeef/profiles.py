@@ -77,6 +77,7 @@ def _resolve_llm(
         model = settings.cloud_llm_model
         kwargs = {"model": model} if model else {}
         return ClaudeLLM(
-            settings.anthropic_api_key, usage_log=settings.llm_usage_log, **kwargs
+            settings.anthropic_api_key, usage_log=settings.llm_usage_log,
+            auth_mode=settings.auth_mode, **kwargs
         )
     raise ValueError(f"onbekende llm-backend: {backend!r}")

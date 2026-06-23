@@ -56,6 +56,10 @@ def converge(
     query: str = typer.Option(..., "--query", "-q", help="Verfijnde zoekvraag."),
     profile: ProfileName = typer.Option(ProfileName.sovereign, "--profile"),
     no_llm: bool = typer.Option(False, "--no-llm", help="Sla alle generatieve stappen over."),
+    subscription: bool = typer.Option(
+        False, "--subscription",
+        help="Gebruik je Claude-abonnement (OAuth via `ant auth login`) i.p.v. een API-key; "
+             "impliceert de cloud-LLM. Embeddings/rerank blijven van het profiel."),
     top_n: int | None = typer.Option(None, "--top-n"),
     threshold: float | None = typer.Option(None, "--threshold"),
     target: int | None = typer.Option(None, "--target"),
@@ -69,6 +73,10 @@ def converge(
     cutoff_defaulted = (top_n, threshold, target) == (None, None, None)
     out_dir = out if out is not None else _default_out()
     settings = Settings()
+    if subscription:
+        # Abonnement-modus slaat alleen op de cloud-LLM; forceer dus die backend en de OAuth-auth.
+        settings.auth_mode = "subscription"
+        settings.llm_backend = "cloud"
     top_k = settings.llm_score_top_k if score_top_k is None else score_top_k
     near_dup_threshold = settings.near_dup_threshold if near_dup is None else near_dup
     providers = resolve_providers(profile, no_llm, settings)
@@ -77,10 +85,11 @@ def converge(
         "docs": str(docs), "query": query, "profile": profile.value, "no_llm": no_llm,
         "cutoff_mode": mode.value, "cutoff_value": value, "recall_bias": recall_bias,
         "score_top_k": top_k, "near_dup_threshold": near_dup_threshold,
-        "cutoff_defaulted": cutoff_defaulted,
+        "cutoff_defaulted": cutoff_defaulted, "auth_mode": settings.auth_mode,
     })
     console.print(f"[bold]zeef {__version__}[/] — profiel [cyan]{profile.value}[/]"
-                  f"{' [yellow](--no-llm)[/]' if no_llm else ''}")
+                  f"{' [yellow](--no-llm)[/]' if no_llm else ''}"
+                  f"{' [magenta](abonnement)[/]' if subscription else ''}")
     if cutoff_defaulted:
         console.print(f"[dim]geen cutoff opgegeven → default {mode.value}={value}[/]")
     result = run_converge(docs, query, providers, mode, value, out_dir, audit,

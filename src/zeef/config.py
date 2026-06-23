@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="ZEEF_", env_file=None, extra="ignore")
 
     anthropic_api_key: str | None = None
+    # Authenticatie tegen de Claude-API: "api_key" = betaalde pay-per-token-sleutel uit de
+    # omgeving; "subscription" = een Claude-abonnement via een OAuth-credential (bv. `ant auth
+    # login`), dat tegen het plan telt i.p.v. per token. In abonnement-modus wordt een eventuele
+    # ANTHROPIC_API_KEY uit de omgeving verwijderd zodat die nooit stilletjes credits verbruikt.
+    auth_mode: str = "api_key"
     ollama_host: str = "http://localhost:11434"
     ollama_llm_model: str = "qwen3"
     ollama_embed_model: str = "qwen3-embedding"

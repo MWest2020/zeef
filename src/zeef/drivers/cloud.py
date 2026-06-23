@@ -14,9 +14,12 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import urllib.request
 
 CLAUDE_MODEL = "claude-opus-4-8"
+# Beta-header die OAuth (abonnement) op /v1/messages vereist.
+_OAUTH_BETA = "oauth-2025-04-20"
 VOYAGE_EMBED_MODEL = "voyage-3"
 VOYAGE_RERANK_MODEL = "rerank-2"
 
@@ -31,7 +34,14 @@ def _require(value: str | None, env_name: str) -> str:
 
 
 class ClaudeLLM:
-    """Generatieve stap via de Claude API. Sleutel uit `ANTHROPIC_API_KEY`."""
+    """Generatieve stap via de Claude API.
+
+    Twee authenticatie-modi (`auth_mode`): `api_key` (default) gebruikt een betaalde sleutel uit
+    `ANTHROPIC_API_KEY`; `subscription` gebruikt een Claude-abonnement via een OAuth-credential
+    (bv. `ant auth login`), dat de SDK zelf resolvet uit `ANTHROPIC_AUTH_TOKEN`. In abonnement-modus
+    wordt een eventuele `ANTHROPIC_API_KEY` uit de omgeving verwijderd, zodat een achtergebleven
+    betaalde sleutel nooit stilletjes credits verbruikt (de SDK kiest die anders vóór het OAuth-pad).
+    """
 
     location = "cloud"
 
@@ -41,17 +51,31 @@ class ClaudeLLM:
         model: str = CLAUDE_MODEL,
         *,
         usage_log: str | None = None,
+        auth_mode: str = "api_key",
     ) -> None:
-        self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        self._auth_mode = auth_mode
         self.model = model
         self.name = model
         self._usage_log = usage_log
+        if auth_mode == "subscription":
+            leaked = os.environ.pop("ANTHROPIC_API_KEY", None)
+            if leaked:
+                sys.stderr.write(
+                    "zeef: abonnement-modus actief; ANTHROPIC_API_KEY uit de omgeving genegeerd "
+                    "zodat die niet wordt belast — de OAuth-abonnementscredential wordt gebruikt.\n"
+                )
+            self._api_key = None
+        else:
+            self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
 
     def complete(self, prompt: str, *, system: str | None = None) -> str:
-        key = _require(self._api_key, "ANTHROPIC_API_KEY")
         from anthropic import Anthropic  # lazy: cloud-extra hoeft niet in sovereign-runs
 
-        client = Anthropic(api_key=key)
+        if self._auth_mode == "subscription":
+            client = Anthropic(default_headers={"anthropic-beta": _OAUTH_BETA})
+        else:
+            key = _require(self._api_key, "ANTHROPIC_API_KEY")
+            client = Anthropic(api_key=key)
         kwargs: dict = {"model": self.model, "max_tokens": 1024, "temperature": 0,
                         "messages": [{"role": "user", "content": prompt}]}
         if system is not None:

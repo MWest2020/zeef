@@ -6,6 +6,30 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-23 — feat: abonnement-modus voor de Claude-LLM (OAuth via `ant auth login`)
+
+**Waarom:** de cloud-LLM kon alléén met een betaalde `ANTHROPIC_API_KEY` (pay-per-token). Net als
+in het zusterproject `crible` wil de gebruiker runs via een Claude-**abonnement** kunnen draaien
+(OAuth), dat tegen het plan telt i.p.v. per token.
+
+**Wat (4 bestanden, port van crible's `llm.py`):**
+- `config.py` — `Settings.auth_mode` (`api_key` | `subscription`).
+- `drivers/cloud.py` — `ClaudeLLM(auth_mode=...)`. In abonnement-modus: bouwt de SDK-client
+  **zonder** `api_key`, mét header `anthropic-beta: oauth-2025-04-20`, en **verwijdert een
+  eventuele `ANTHROPIC_API_KEY` uit de omgeving** (met stderr-melding) zodat een achtergebleven
+  betaalde sleutel nooit stilletjes credits verbruikt — de SDK kiest die anders vóór het OAuth-pad.
+- `profiles.py` — geeft `settings.auth_mode` door aan `ClaudeLLM`.
+- `cli.py` — vlag `--subscription`; impliceert de cloud-LLM-backend (embeddings/rerank blijven van
+  het profiel) en zet `auth_mode`. De gekozen modus staat in het `run-start`-audit-event.
+
+**Gebruik:** eenmalig `ant auth login`, dan bv.
+`zeef converge ./docs -q "..." --profile sovereign --subscription` — lokale Ollama-embeddings +
+Claude-LLM via abonnement.
+
+**Tests:** `tests/test_cloud_auth.py` — abonnement popt de betaalde key, bouwt de client met de
+OAuth-header en zonder `api_key`; api-key-modus faalt zonder sleutel en geeft de sleutel door.
+`pytest` 76 passed / 1 skipped; `ruff` schoon.
+
 ### 2026-06-20 — feat: runtimes vastleggen — per-stage timing + run-manifest.json (vierde artefact)
 
 **Waarom:** de audit-log had per event een `ts`, maar geen *bedoelde* meting van hoe lang een
