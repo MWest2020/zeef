@@ -58,6 +58,11 @@ pay-per-token). Met `--subscription` draait de LLM via je **Claude-abonnement** 
 staan — bv. lokale Ollama-embeddings + Claude-LLM. In abonnement-modus wordt een eventuele
 `ANTHROPIC_API_KEY` uit de omgeving verwijderd, zodat die nooit per ongeluk credits verbruikt.
 
+> **Billing-kanttekening:** afhankelijk van je Claude-account kan de OAuth-credential alsnog uit
+> hetzelfde **API-credit-saldo** trekken in plaats van uit een vast plan (waargenomen: een run die
+> faalt met *"credit balance is too low to access the Anthropic API"*). De abonnement-modus is dan
+> wél correct geauthenticeerd, maar zonder credit-saldo draait er niets. Controleer *Plans & Billing*.
+
 `--no-llm` slaat alle generatieve stappen over: criteria valt terug op de ruwe zoekvraag en de
 selectie loopt puur op embedding + rerank — de maximaal-soevereine, air-gapped-veilige modus die
 de acceptatietest gebruikt.
