@@ -48,3 +48,4 @@ docs/.hugo_build.lock
 *.swp
 .idea/
 .vscode/
+config
