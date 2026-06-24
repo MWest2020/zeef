@@ -29,13 +29,14 @@ reproduceerbaar en herleidbaar via een append-only audit-trail.
 | 1 | **Criteria** | Zoekvraag → expliciete, benoemde relevantiecriteria (`criteria.json`) | **LLM (begin)** |
 | 2 | **Ingest & normalize** | Format-robuuste loaders (`.eml`/`.msg`, digitale PDF) → canoniek `Document`, mét extractie-gezondheid (`char_count`/`parse_ok`/`redaction_ratio`) | nee |
 | 3 | **Validity-gate** | Deterministische pre-flight: sluit mechanisch-onbruikbare documenten uit (onleesbaar, leeg-na-OCR) met `validity:`-reden; behoudt gelakt-maar-leesbare | nee |
-| 4 | **Relate** | Mailthreads uit headers, near-duplicates (MinHash + cosine) | nee |
+| 4 | **Relate** | Mailthreads uit headers, near-duplicates (MinHash + cosine); partiële overlap als `overlaps-with` | nee |
 | 5 | **Scope-filter** | Regels eerst, LLM alleen voor twijfelgevallen — elke uitsluiting met reden | regels + LLM-randgeval |
 | 6–7 | **Embed → Retrieve → Rerank** | Kandidaten t.o.v. de zoekvraag; rerank trimt tot de top-K | nee |
 | 8 | **Score** | LLM scoort de top-K tegen de criteria: relevantiescore + motivatie per document | **LLM (eind)** |
 | 9 | **Select** | Instelbare cutoff (`--top-n` / `--threshold` / `--target`), recall-gericht | nee |
 | 10 | **Topics** | Deterministische clustering → onderwerp/deelonderwerp-menu; LLM labelt alleen | label-only |
-| 11 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `topics.json`, `run-manifest.json`, `audit.jsonl` | nee |
+| 11 | **Summarise** | Per geselecteerd document een ≤100-woord inhoudssamenvatting; onder `--no-llm` overgeslagen (kolom afwezig) | **LLM** |
+| 12 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `topics.json`, `run-manifest.json`, `audit.jsonl` | nee |
 
 **Twee LLM-momenten, de rest deterministisch.** De regel: LLM alleen bij een oordeel onder
 taalkundige ambiguïteit zónder mechanische grondwaarheid, én waar een motivatie de
@@ -84,8 +85,9 @@ zeef converge ./docs --query "..." --profile sovereign --no-llm --target 100
 `--score-top-k N` begrenst hoeveel reranked kandidaten de LLM-scoring beoordeelt (`0` = alle).
 
 Levert op (in een verse run-map per aanroep): de geselecteerde set, `inventory.xlsx` (id, score,
-categorie = onderwerp/deelonderwerp, doc_type, samenvatting, reden, **motivatie**),
-`relations.json` (relatiegraaf), `criteria.json` (de gearticuleerde relevantiecriteria),
+categorie = onderwerp/deelonderwerp, doc_type, samenvatting — alleen mét LLM, anders weggelaten —,
+reden, **motivatie**), `relations.json` (relatiegraaf incl. `overlaps-with` voor partiële overlap),
+`criteria.json` (de gearticuleerde relevantiecriteria),
 `topics.json` (het onderwerp/deelonderwerp-keuzemenu voor de verzoeker),
 `run-manifest.json` (run-parameters + per-stage runtimes) en `audit.jsonl` (volledige audit-log).
 

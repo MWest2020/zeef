@@ -6,6 +6,62 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-24 — fix: review-bevindingen op output-hygiene (formule-injectie + bedrading)
+
+**Waarom:** review op `change/output-hygiene` leverde één security-fix en twee kleinere punten op.
+
+**Wat (`export.py`, alleen deze change):**
+- **🟠 Excel/CSV-formule-injectie (CWE-1236).** `write_inventory` schreef tekstcellen rauw; een cel
+  die met `=`, `+`, `-`, `@` (of tab/CR) begint, voert Excel/LibreOffice uit bij openen — en de
+  inventory wordt door een ambtenaar in Excel geopend, met kolommen uit onvertrouwde LLM-bron. Nieuwe
+  `_formula_safe`-helper prefixt zulke tekstcellen met een apostrof (tekst i.p.v. formule).
+  **Dekt expliciet álle tekstkolommen**, niet alleen de nieuwe `summary`: ook de **bestaande**
+  `category` (change #2), `reason` en `motivatie` (change #1/#2) worden nu geneutraliseerd — vandaar
+  dat een output-hygiene-change ouder kolomgedrag raakt. Test leest de geschreven celwaarde terug
+  (`'=…` geprefixt; onschuldige cel ongewijzigd).
+- **e2e-assert op de summary-bedrading.** `include_summary = not no_llm` was alleen op functieniveau
+  getest; nu ook een volledige `--no-llm`-run die bevestigt dat de geëxporteerde `inventory.xlsx`
+  géén `summary`-kolom heeft (legt de bedrading vast tegen een stille refactor).
+- **Docs:** de-pijplijn benoemt nu expliciet dat de samenvatting de **opening** (~2000 tekens) van
+  het document dekt, niet het volledige document.
+
+**Tests:** `pytest` mét cloud / zónder cloud beide groen (zónder collecteert nog steeds schoon).
+`openspec validate output-hygiene --strict` ✓; `ruff` schoon.
+
+### 2026-06-24 — feat: output-hygiene — samenvatting, overlaps-with, test-collectie zonder cloud-dep
+
+**Waarom:** drie restpunten die een slordige indruk geven bij een auditor: een `summary`-kolom die
+nooit gevuld werd (lege kolom met header), `overlaps-with` als dood contract (gedeclareerd, nooit
+uitgestoten), en een testsuite die niet collecteerde zonder de optionele `cloud`-dep.
+
+**Wat (change #3 `output-hygiene`):**
+- `pipeline/summarise.py` (nieuw, capability `summarise`) — per geselecteerd document één LLM-call →
+  ≤`summary_max_words` (100) inhoudssamenvatting (wát het document zegt, los van de `rationale` =
+  waaróm het scoort), ná `select` en `topics`. Prompt/model/locatie gelogd. Onder `--no-llm`:
+  geen samenvatting, **geen model-call**.
+- `export.py` — `write_inventory(..., include_summary)`: de `summary`-kolom verschijnt alleen mét
+  LLM; onder `--no-llm` wordt ze **weggelaten** (geen lege kolom). `run.py` zet
+  `include_summary = not providers.no_llm`.
+- `pipeline/dedup.py` + `relate.py` — `overlaps-with` voor partiële overlap: bevestigde cosine in
+  `[overlap_threshold, near_dup_threshold)` → `overlaps-with` (evidence = de cosine); op/boven
+  near-dup blijft `duplicate-of`. Hergebruikt de bestaande near-dup-cosine. `overlap_threshold`
+  (0.7) in `config.py`, gelogd in het manifest.
+- `config.py` — `overlap_threshold` + `summary_max_words` (eigen blok). `run.py`/`cli.py` additief:
+  `summarise`-stage in de timer, beide params doorgegeven + in manifest-params.
+- `tests/test_cloud_auth.py` — **fix:** module-niveau `import anthropic` → lazy via
+  `pytest.importorskip` in de fixture (+ in de api-key-test die `complete()` raakt). De suite
+  collecteert nu zónder `--extra cloud` en de cloud-only tests skippen netjes als de dep ontbreekt.
+
+**Determinisme/soevereiniteit:** `overlaps-with` is deterministisch; de samenvatting is de enige
+generatieve toevoeging (temp 0 via de driver, prompt gelogd); `--no-llm` blijft air-gapped en laat
+de kolom weg.
+
+**Tests:** `test_summarise.py` (samenvatting gezet + prompt gelogd + ≤max woorden; `--no-llm` geen
+call/geen summary), `test_dedup.py` (scharnierend paar: net ónder near-dup → `overlaps-with`, op/boven
+→ `duplicate-of`), `test_export.py` (kolom afwezig onder `include_summary=False`, op kolomnaam).
+`openspec validate output-hygiene --strict` ✓. `uv run pytest` **mét** cloud: 101 passed / 1 skipped;
+**zónder** cloud: 98 passed / 4 skipped (schone collectie, cloud-tests geskipt). `ruff` schoon.
+
 ### 2026-06-24 — fix: review-bevindingen op de validity-gate (robuustheid + precisie)
 
 **Waarom:** review (`/review` + `/security-review`) op `change/pdf-validity-gate` legde drie

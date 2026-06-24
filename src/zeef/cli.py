@@ -101,12 +101,14 @@ def converge(
     result = run_converge(docs, query, providers, mode, value, out_dir, audit,
                           recall_bias=recall_bias, score_top_k=top_k,
                           near_dup_threshold=near_dup_threshold,
+                          overlap_threshold=settings.overlap_threshold,
                           validity_min_chars=validity_min_chars,
                           redaction_ratio_threshold=redaction_threshold,
                           onderwerp_distance=settings.onderwerp_distance,
                           deelonderwerp_distance=settings.deelonderwerp_distance,
                           min_cluster_size=settings.min_cluster_size,
                           max_chunks_per_doc=settings.max_chunks_per_doc,
+                          summary_max_words=settings.summary_max_words,
                           progress=lambda s: console.print(f"  [dim]→[/] {s}"))
     _summary(result, mode, value)
 

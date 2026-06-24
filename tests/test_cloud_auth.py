@@ -5,7 +5,6 @@ nooit worden gebruikt — hij wordt uit de omgeving verwijderd en de client krij
 `api_key`, wél de OAuth-beta-header. In api-key-modus faalt een call hard zonder sleutel.
 """
 
-import anthropic
 import pytest
 
 from zeef.drivers.cloud import ClaudeLLM
@@ -39,6 +38,9 @@ class _FakeAnthropic:
 
 @pytest.fixture
 def fake_sdk(monkeypatch):
+    # Lazy import: de suite moet collecteren zónder de optionele `cloud`-dep; deze cloud-only
+    # tests skippen netjes als `anthropic` ontbreekt (de tests die de SDK niet raken draaien wel).
+    anthropic = pytest.importorskip("anthropic")
     _FakeAnthropic.last_kwargs = None
     monkeypatch.setattr(anthropic, "Anthropic", _FakeAnthropic)
     return _FakeAnthropic
@@ -61,6 +63,8 @@ def test_subscription_client_uses_oauth_header_and_no_key(fake_sdk, monkeypatch)
 
 
 def test_api_key_mode_requires_key(monkeypatch):
+    # complete() importeert de SDK (lazy) vóór de key-check, dus deze test heeft de cloud-dep nodig.
+    pytest.importorskip("anthropic")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     llm = ClaudeLLM(auth_mode="api_key")
     with pytest.raises(RuntimeError, match="ANTHROPIC_API_KEY"):

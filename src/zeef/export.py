@@ -21,6 +21,12 @@ from zeef.models import Criteria, Document
 INVENTORY_COLUMNS = ("id", "score", "category", "doc_type", "summary", "reason", "motivatie")
 
 
+# Tekens die Excel/LibreOffice (en openpyxl) als formule-start zien: een cel die hiermee begint
+# wordt uitgevoerd bij openen (CSV/Excel-formule-injectie, CWE-1236). Inhoud uit onvertrouwde bron
+# (LLM-samenvatting/labels, documenttekst) wordt door een ambtenaar in Excel geopend.
+_FORMULA_LEAD = ("=", "+", "-", "@", "\t", "\r")
+
+
 def _category(doc: Document) -> str:
     """Onderwerp / deelonderwerp als één cel; valt terug op alleen het onderwerp (of leeg)."""
     if doc.subtopic and doc.subtopic != doc.topic:
@@ -28,23 +34,35 @@ def _category(doc: Document) -> str:
     return doc.topic
 
 
-def write_inventory(selected: list[Document], path: Path) -> Path:
-    """Schrijf de kernselectie naar `inventory.xlsx` met de vaste kolommen."""
+def _formula_safe(value: object) -> object:
+    """Neutraliseer formule-injectie: prefix een tekstcel die met een formule-teken begint met een
+    apostrof, zodat Excel/LibreOffice 'm als tekst toont i.p.v. uit te voeren. Niet-tekst ongemoeid."""
+    if isinstance(value, str) and value[:1] in _FORMULA_LEAD:
+        return "'" + value
+    return value
+
+
+def write_inventory(selected: list[Document], path: Path, *, include_summary: bool = True) -> Path:
+    """Schrijf de kernselectie naar `inventory.xlsx`. De `summary`-kolom verschijnt alleen wanneer er
+    samenvattingen zijn (LLM); onder `--no-llm` wordt ze weggelaten i.p.v. leeg getoond."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    columns = INVENTORY_COLUMNS if include_summary else tuple(
+        c for c in INVENTORY_COLUMNS if c != "summary")
     wb = Workbook()
     ws = wb.active
     ws.title = "inventory"
-    ws.append(list(INVENTORY_COLUMNS))
+    ws.append(list(columns))
     for doc in selected:
-        ws.append([
-            doc.id,
-            round(doc.scores.get("final", 0.0), 6),
-            _category(doc),
-            doc.doc_type,
-            str(doc.metadata.get("summary", "")),
-            doc.decision_reason,
-            doc.rationale,
-        ])
+        cells = {
+            "id": doc.id,
+            "score": round(doc.scores.get("final", 0.0), 6),
+            "category": _category(doc),
+            "doc_type": doc.doc_type,
+            "summary": str(doc.metadata.get("summary", "")),
+            "reason": doc.decision_reason,
+            "motivatie": doc.rationale,
+        }
+        ws.append([_formula_safe(cells[c]) for c in columns])
     wb.save(path)
     return path
 
