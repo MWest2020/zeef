@@ -77,6 +77,34 @@ behouden). `openspec validate pdf-validity-gate --strict` ✓. `pytest` 81 passe
 1 skipped (cloud-auth-collectiefout = ontbrekende optionele `anthropic`-dep in deze worktree-venv,
 los van deze change); `ruff` schoon. Spec: `openspec/changes/pdf-validity-gate/`.
 
+### 2026-06-24 — fix: review-bevindingen op topic-clustering (run-crash + schaal)
+
+**Waarom:** review (`/review` + security) op `change/topic-clustering` legde twee acteerbare
+code-punten bloot vóór de merge.
+
+**Wat (`pipeline/topics.py`, alleen deze change):**
+- **🔴 nul-vector-guard (run-crash).** `_chunk_vectors` filterde nul-/niet-eindige chunk-embeddings
+  niet; cosine is daar ongedefinieerd en `scipy.linkage` gooit hard (`ValueError: condensed distance
+  matrix must contain only finite values`). Dat raakt direct de gelakt-maar-behouden documenten uit
+  change #1 (dunne tekst). Nu gefilterd; houdt een document geen bruikbare chunk over, dan gaat het
+  deterministisch naar **"Overig"** i.p.v. de run laat te laten crashen. Test:
+  `test_empty_chunk_document_routes_to_overig_without_crashing`.
+- **🟠 `linkage` één keer + chunk-cap (T8).** `_flat_clusters` werd twee keer aangeroepen → `pdist`
+  dubbel berekend. Nu `_two_level`: één `linkage`, twee `fcluster`-cuts — halveert de kost en maakt
+  de nesting bewijsbaar (zelfde dendrogram). De O(n²)-afstandsmatrix wordt begrensd via een
+  **deterministische chunk-cap** (`max_chunks_per_doc`, default 40): gelijkmatige bemonstering over
+  het document (geen "eerste/langste N", die de meerderheid zou biasen), zodat de topic-verdeling —
+  en dus de T7-meerderheidsregel — behouden blijft. De cap staat in het run-manifest (geen stille
+  truncatie). Besluit T8 in `design.md`. Test: `test_chunk_cap_preserves_majority`.
+
+**Bevestigd, niet gewijzigd:** `_chunk_vectors` valt onder `--no-llm` terug op `embed.embed(...)` als
+embeddings ontbreken — dat is een lokale embedding, **geen** LLM-call (de no-call-test blijft groen);
+bewust en gedocumenteerd in de docstring.
+
+**Tests:** `pytest` **86 passed / 1 skipped** (+2). Expliciet groen: reproduceerbaarheid, no-call,
+T7-meerderheid, nul-vector→Overig, cap-behoudt-meerderheid. `openspec validate topic-clustering
+--strict` ✓; `ruff` schoon; `topics.py` 177 regels (≤200).
+
 ### 2026-06-24 — feat: topic-clustering — onderwerp/deelonderwerp-menu voor de verzoeker
 
 **Waarom:** een hoofdcriterium van de verkenning is het opdelen van de kern in deelonderwerpen, als

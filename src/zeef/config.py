@@ -77,6 +77,10 @@ class Settings(BaseSettings):
     onderwerp_distance: float = 0.8
     deelonderwerp_distance: float = 0.5
     min_cluster_size: int = 3
+    # Max. chunks per document dat de clustering in gaat (gelijkmatig bemonsterd, design T8). Begrenst
+    # de O(n²)-afstandsmatrix op grote dossiers (457 p. → ~1.000+ chunks); 0 = geen cap. Gelogd in
+    # het manifest. Bemonstering behoudt de topic-verdeling, dus de meerderheidsregel blijft geldig.
+    max_chunks_per_doc: int = 40
 
 
 class NullLLM:

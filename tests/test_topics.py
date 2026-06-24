@@ -71,7 +71,8 @@ def _assign(docs):
     return {d.id: (d.topic, d.subtopic) for d in docs}
 
 
-_PARAMS = {"onderwerp_distance": 0.5, "deelonderwerp_distance": 0.2, "min_cluster_size": 3}
+_PARAMS = {"onderwerp_distance": 0.5, "deelonderwerp_distance": 0.2, "min_cluster_size": 3,
+           "max_chunks_per_doc": 64}
 
 
 def test_two_level_grouping_with_overig_collapse(audit):
@@ -116,6 +117,7 @@ def test_manifest_records_clustering_params_and_topics_json(corpus, tmp_path):
     assert params["onderwerp_distance"] == 0.5
     assert params["deelonderwerp_distance"] == 0.2
     assert params["min_cluster_size"] == 3
+    assert params["max_chunks_per_doc"] == 64  # de cap is een clusterparameter, gelogd in het manifest
     assert (tmp_path / "topics.json").exists()
 
 
@@ -131,7 +133,8 @@ def test_two_runs_same_params_yield_identical_topics_json(corpus, tmp_path):
     assert topics_a == topics_b and topics_a["onderwerpen"]
 
 
-_SPLIT_PARAMS = {"onderwerp_distance": 0.5, "deelonderwerp_distance": 0.2, "min_cluster_size": 2}
+_SPLIT_PARAMS = {"onderwerp_distance": 0.5, "deelonderwerp_distance": 0.2, "min_cluster_size": 2,
+                 "max_chunks_per_doc": 64}
 
 
 def _split_corpus():
@@ -171,3 +174,40 @@ def test_llm_labelling_applies_label_and_logs_prompt(audit):
     evs = [e for e in _events(audit) if e["action"] == "label"]
     assert evs and all(e["prompt"] and e["model"] == "spy-llm" and e["location"] == "local"
                        for e in evs)
+
+
+def test_empty_chunk_document_routes_to_overig_without_crashing(audit):
+    # Spiegelbeeld van change 1's gelakt-test: een nul-embedding (bv. een gelakt/leeg document) mag
+    # de cosine-clustering niet laten crashen. Het document is niet plaatsbaar → deterministisch Overig.
+    docs = [
+        _doc(0, _A, "subsidie cultuur"),
+        _doc(1, _A, "subsidie cultuur"),
+        _doc(2, _B, "vergunning bouw"),
+        _doc(3, _B, "vergunning bouw"),
+        _doc(8, [0.0, 0.0, 0.0], ""),
+    ]
+    zero_doc = docs[-1]
+    params = {"onderwerp_distance": 0.5, "deelonderwerp_distance": 0.2, "min_cluster_size": 2,
+              "max_chunks_per_doc": 64}
+    menu = cluster_topics(docs, _bundle(no_llm=True), audit, **params)  # mag niet crashen
+    assert zero_doc.topic == OVERIG and zero_doc.subtopic == OVERIG
+    overig = [o for o in menu["onderwerpen"] if o["label"] == OVERIG]
+    assert overig and zero_doc.id in overig[0]["deelonderwerpen"][0]["doc_ids"]
+
+
+def test_chunk_cap_preserves_majority(audit):
+    # 4 chunks in A, 2 in B → meerderheid A. Met cap=3 (gelijkmatig bemonsterd: chunks 0,2,4 →
+    # A,A,B) blijft A de meerderheid — de cap verschuift de toewijzing niet.
+    docs = [
+        _doc(0, _A, "subsidie cultuur"),
+        _doc(1, _A, "subsidie cultuur"),
+        _doc(2, _B, "vergunning bouw"),
+        _doc(3, _B, "vergunning bouw"),
+        _multichunk_doc(9, [_A, _A, _A, _A, _B, _B], "subsidie cultuur vergunning"),
+    ]
+    split = docs[-1]
+    params = {"onderwerp_distance": 0.5, "deelonderwerp_distance": 0.2, "min_cluster_size": 2,
+              "max_chunks_per_doc": 3}
+    cluster_topics(docs, _bundle(no_llm=True), audit, **params)
+    assert split.topic != OVERIG
+    assert split.topic == docs[0].topic and split.topic != docs[2].topic

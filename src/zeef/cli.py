@@ -106,6 +106,7 @@ def converge(
                           onderwerp_distance=settings.onderwerp_distance,
                           deelonderwerp_distance=settings.deelonderwerp_distance,
                           min_cluster_size=settings.min_cluster_size,
+                          max_chunks_per_doc=settings.max_chunks_per_doc,
                           progress=lambda s: console.print(f"  [dim]→[/] {s}"))
     _summary(result, mode, value)
 

@@ -71,6 +71,27 @@ tie-break. The rule is the canonical answer to "where does this document belong"
 / `Document.subtopic` (mirrored into the inventory `category` and `topics.json`) are its only
 representation — change #4 (viewer) reads those, not the raw chunk clusters.
 
+### T8 — Chunk-cap is a correctness choice, and unusable embeddings route to "Overig"
+Clustering over chunks is O(n²) in memory (`scipy` builds the full pairwise distance matrix). A
+single 457-page Woo dossier chunks into ~1,000–1,500 chunks; a ~100-document core would push the
+matrix into the hundreds of MB to GB. So the number of chunks per document fed into the clustering
+is capped (`max_chunks_per_doc`).
+
+The cap is **not** a pure performance knob — which chunks you drop changes which onderwerp a
+document lands in. So the strategy is **even sampling** across the document (every `len/cap`-th
+chunk), not "first/longest N": first-N truncates a multi-topic document's later content and would
+bias the very majority vote T7 depends on, whereas a uniform sample preserves the document's topic
+distribution, so the majority stays representative. The cap is recorded in the run-manifest like the
+other clustering parameters — no silent truncation, which would break the reproducible/auditable
+grouping promise and is exactly the kind of clever shortcut that can't be defended in an audit.
+
+Separately, cosine distance is undefined for the zero vector (and `scipy.linkage` raises on any
+non-finite value), so zero/non-finite chunk embeddings are filtered before clustering. A document
+that thereby has no usable chunk vector — e.g. a heavily redacted, near-empty document that change #1
+deliberately keeps — cannot be placed topically and is assigned deterministically to **"Overig"**
+rather than crashing the run. This is the mirror of change #1's redaction handling: keep the
+document, place it honestly, never fail late.
+
 ## Risks / Trade-offs
 
 - **Cluster-count sensitivity.** The thresholds decide how many onderwerpen appear; too coarse is

@@ -41,6 +41,7 @@ DEFAULT_REDACTION_RATIO_THRESHOLD = 0.10
 DEFAULT_ONDERWERP_DISTANCE = 0.8
 DEFAULT_DEELONDERWERP_DISTANCE = 0.5
 DEFAULT_MIN_CLUSTER_SIZE = 3
+DEFAULT_MAX_CHUNKS_PER_DOC = 40
 
 
 @dataclass(frozen=True)
@@ -82,6 +83,7 @@ def run_converge(
     onderwerp_distance: float = DEFAULT_ONDERWERP_DISTANCE,
     deelonderwerp_distance: float = DEFAULT_DEELONDERWERP_DISTANCE,
     min_cluster_size: int = DEFAULT_MIN_CLUSTER_SIZE,
+    max_chunks_per_doc: int = DEFAULT_MAX_CHUNKS_PER_DOC,
     progress=None,
 ) -> RunResult:
     """Draai de volledige convergentie en schrijf de artefacten naar `out_dir`."""
@@ -120,7 +122,8 @@ def run_converge(
         selected, providers, audit,
         onderwerp_distance=onderwerp_distance,
         deelonderwerp_distance=deelonderwerp_distance,
-        min_cluster_size=min_cluster_size))
+        min_cluster_size=min_cluster_size,
+        max_chunks_per_doc=max_chunks_per_doc))
 
     def _export() -> None:
         write_inventory(selected, out_dir / "inventory.xlsx")
@@ -162,6 +165,7 @@ def run_converge(
             "onderwerp_distance": onderwerp_distance,
             "deelonderwerp_distance": deelonderwerp_distance,
             "min_cluster_size": min_cluster_size,
+            "max_chunks_per_doc": max_chunks_per_doc,
         },
         "counts": result.counts(),
         "runtime_ms": {"total": total_ms, "stages": timings},

@@ -39,6 +39,8 @@
 - [x] 7.5 Full suite green (`uv run pytest`), `ruff` clean, ≤200-line file check
 - [x] 7.6 Chunk→document aggregation (T7): a document with chunks split over two clusters gets exactly one onderwerp/deelonderwerp by majority, deterministically (the asymmetric failure mode)
 - [x] 7.7 LLM-label branch tested with a spy: label lands on the cluster, `source` is no longer fallback, audit event per cluster with prompt/model/location
+- [x] 7.8 Review fix (🔴): a zero/non-finite chunk embedding no longer crashes the run; an unembeddable document routes deterministically to "Overig"
+- [x] 7.9 Review fix (🟠 T8): chunk cap preserves the majority (even sampling does not shift the topic assignment)
 
 ## 8. Docs & changelog
 
