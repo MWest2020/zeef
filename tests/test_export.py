@@ -55,6 +55,15 @@ def test_no_llm_leaves_motivatie_empty(tmp_path):
     assert [c.value for c in ws[2]][motivatie_idx] in ("", None)
 
 
+def test_no_summary_column_when_excluded(tmp_path):
+    # Onder --no-llm wordt de summary-kolom wéggelaten (geen lege kolom), de rest blijft.
+    ws = load_workbook(
+        write_inventory([_doc("a")], tmp_path / "inv.xlsx", include_summary=False)).active
+    header = [c.value for c in ws[1]]
+    assert "summary" not in header
+    assert "category" in header and "doc_type" in header and "motivatie" in header
+
+
 def test_criteria_exported_as_json(tmp_path):
     crit = Criteria(query="begroting subsidie cultuur 2026",
                     items=[Criterion(label="onderwerp", description="gaat over de begroting")],

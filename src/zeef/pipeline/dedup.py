@@ -42,26 +42,32 @@ def link_exact_duplicates(docs: list[Document], audit: AuditLog) -> None:
 
 
 def link_near_duplicates(
-    docs: list[Document], embed: EmbeddingProvider, audit: AuditLog, threshold: float
+    docs: list[Document], embed: EmbeddingProvider, audit: AuditLog, threshold: float,
+    overlap_threshold: float = 1.0,
 ) -> None:
-    """Bevestig MinHash-kandidaten met embedding-cosinus boven `threshold`."""
+    """Bevestig MinHash-kandidaten met embedding-cosinus. `cos ≥ threshold` → `duplicate-of`; daar
+    net onder, in `[overlap_threshold, threshold)` → `overlaps-with` (partiële overlap, geen
+    duplicaat). Een `overlap_threshold ≥ threshold` (default 1.0) zet de overlap-band uit."""
     candidates = _minhash_candidate_pairs(docs)
     if candidates is None:
         audit.event(STAGE, "near-dup-skipped", inputs={"reason": "datasketch niet beschikbaar"})
         return
     targets = [d for d in docs if d.text]
     vecs = {d.id: v for d, v in zip(targets, embed.embed([d.text for d in targets]))}
+    model = getattr(embed, "name", "?")
     for a, b in candidates:
         if _is_dup(a) or _is_dup(b) or a.id not in vecs or b.id not in vecs:
             continue
         cos = cosine(vecs[a.id], vecs[b.id])
-        if cos < threshold:
-            continue
         rep, other = sorted((a, b), key=lambda d: d.source_path)
-        other.add_relation("duplicate-of", rep.id, evidence=f"near-duplicate cosine={cos:.3f}")
-        audit.event(STAGE, "duplicate", document_ids=[other.id, rep.id],
-                    inputs={"kind": "near", "cosine": round(cos, 4),
-                            "embed_model": getattr(embed, "name", "?")})
+        if cos >= threshold:
+            other.add_relation("duplicate-of", rep.id, evidence=f"near-duplicate cosine={cos:.3f}")
+            audit.event(STAGE, "duplicate", document_ids=[other.id, rep.id],
+                        inputs={"kind": "near", "cosine": round(cos, 4), "embed_model": model})
+        elif cos >= overlap_threshold:
+            other.add_relation("overlaps-with", rep.id, evidence=f"overlap cosine={cos:.3f}")
+            audit.event(STAGE, "overlap", document_ids=[other.id, rep.id],
+                        inputs={"cosine": round(cos, 4), "embed_model": model})
 
 
 def _shingles(text: str, k: int = 3) -> set[str]:

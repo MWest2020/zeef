@@ -15,6 +15,7 @@ from zeef.protocols import EmbeddingProvider
 
 STAGE = "relate"
 DEFAULT_NEAR_DUP_THRESHOLD = 0.9
+DEFAULT_OVERLAP_THRESHOLD = 0.7
 
 
 def relate(
@@ -23,15 +24,18 @@ def relate(
     audit: AuditLog,
     *,
     near_dup_threshold: float = DEFAULT_NEAR_DUP_THRESHOLD,
+    overlap_threshold: float = DEFAULT_OVERLAP_THRESHOLD,
 ) -> list[Document]:
-    """Bouw thread- en duplicaatrelaties op de documenten (in-place) en retourneer ze."""
+    """Bouw thread-, duplicaat- en overlap-relaties op de documenten (in-place) en retourneer ze."""
     reconstruct_threads(docs, audit)
     annotate_thread_clusters(docs)
     link_exact_duplicates(docs, audit)
-    link_near_duplicates(docs, embed, audit, near_dup_threshold)
+    link_near_duplicates(docs, embed, audit, near_dup_threshold, overlap_threshold)
     audit.event(STAGE, "relate-complete", inputs={
         "documents": len(docs),
         "duplicates": sum(1 for d in docs if any(r.kind == "duplicate-of" for r in d.relations)),
+        "overlaps": sum(1 for d in docs for r in d.relations if r.kind == "overlaps-with"),
         "near_dup_threshold": near_dup_threshold,
+        "overlap_threshold": overlap_threshold,
     })
     return docs

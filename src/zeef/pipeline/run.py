@@ -25,12 +25,13 @@ from zeef.export import (
 from zeef.models import Criteria, Document
 from zeef.pipeline.criteria import articulate_criteria
 from zeef.pipeline.ingest import ingest
-from zeef.pipeline.relate import DEFAULT_NEAR_DUP_THRESHOLD, relate
+from zeef.pipeline.relate import DEFAULT_NEAR_DUP_THRESHOLD, DEFAULT_OVERLAP_THRESHOLD, relate
 from zeef.pipeline.rerank import rerank
 from zeef.pipeline.retrieve import retrieve
 from zeef.pipeline.score import score
 from zeef.pipeline.scope_filter import scope_filter
 from zeef.pipeline.select import select
+from zeef.pipeline.summarise import DEFAULT_SUMMARY_MAX_WORDS, summarise
 from zeef.pipeline.topics import cluster_topics
 from zeef.pipeline.validity import validity_gate
 from zeef.profiles import ProviderBundle
@@ -78,12 +79,14 @@ def run_converge(
     recall_bias: float = 0.0,
     score_top_k: int = 0,
     near_dup_threshold: float = DEFAULT_NEAR_DUP_THRESHOLD,
+    overlap_threshold: float = DEFAULT_OVERLAP_THRESHOLD,
     validity_min_chars: int = DEFAULT_VALIDITY_MIN_CHARS,
     redaction_ratio_threshold: float = DEFAULT_REDACTION_RATIO_THRESHOLD,
     onderwerp_distance: float = DEFAULT_ONDERWERP_DISTANCE,
     deelonderwerp_distance: float = DEFAULT_DEELONDERWERP_DISTANCE,
     min_cluster_size: int = DEFAULT_MIN_CLUSTER_SIZE,
     max_chunks_per_doc: int = DEFAULT_MAX_CHUNKS_PER_DOC,
+    summary_max_words: int = DEFAULT_SUMMARY_MAX_WORDS,
     progress=None,
 ) -> RunResult:
     """Draai de volledige convergentie en schrijf de artefacten naar `out_dir`."""
@@ -110,7 +113,8 @@ def run_converge(
         docs, audit, min_chars=validity_min_chars,
         redaction_ratio_threshold=redaction_ratio_threshold))
     run_stage("relate", lambda: relate(
-        docs, providers.embed, audit, near_dup_threshold=near_dup_threshold))
+        docs, providers.embed, audit, near_dup_threshold=near_dup_threshold,
+        overlap_threshold=overlap_threshold))
     run_stage("scope-filter", lambda: scope_filter(docs, providers, audit, query))
     candidates = run_stage("retrieve", lambda: retrieve(docs, providers.embed, audit, query))
     ranked = run_stage("rerank", lambda: rerank(candidates, providers.reranker, audit, query))
@@ -124,9 +128,12 @@ def run_converge(
         deelonderwerp_distance=deelonderwerp_distance,
         min_cluster_size=min_cluster_size,
         max_chunks_per_doc=max_chunks_per_doc))
+    run_stage("summarise", lambda: summarise(
+        selected, providers, audit, max_words=summary_max_words))
 
     def _export() -> None:
-        write_inventory(selected, out_dir / "inventory.xlsx")
+        write_inventory(selected, out_dir / "inventory.xlsx",
+                        include_summary=not providers.no_llm)
         write_relations(docs, out_dir / "relations.json")
         write_criteria(criteria, out_dir / "criteria.json")
         write_topics(topics, out_dir / "topics.json")
@@ -160,12 +167,14 @@ def run_converge(
             "recall_bias": recall_bias,
             "score_top_k": score_top_k,
             "near_dup_threshold": near_dup_threshold,
+            "overlap_threshold": overlap_threshold,
             "validity_min_chars": validity_min_chars,
             "redaction_ratio_threshold": redaction_ratio_threshold,
             "onderwerp_distance": onderwerp_distance,
             "deelonderwerp_distance": deelonderwerp_distance,
             "min_cluster_size": min_cluster_size,
             "max_chunks_per_doc": max_chunks_per_doc,
+            "summary_max_words": summary_max_words,
         },
         "counts": result.counts(),
         "runtime_ms": {"total": total_ms, "stages": timings},

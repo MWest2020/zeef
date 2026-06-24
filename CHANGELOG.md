@@ -6,6 +6,40 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-24 — feat: output-hygiene — samenvatting, overlaps-with, test-collectie zonder cloud-dep
+
+**Waarom:** drie restpunten die een slordige indruk geven bij een auditor: een `summary`-kolom die
+nooit gevuld werd (lege kolom met header), `overlaps-with` als dood contract (gedeclareerd, nooit
+uitgestoten), en een testsuite die niet collecteerde zonder de optionele `cloud`-dep.
+
+**Wat (change #3 `output-hygiene`):**
+- `pipeline/summarise.py` (nieuw, capability `summarise`) — per geselecteerd document één LLM-call →
+  ≤`summary_max_words` (100) inhoudssamenvatting (wát het document zegt, los van de `rationale` =
+  waaróm het scoort), ná `select` en `topics`. Prompt/model/locatie gelogd. Onder `--no-llm`:
+  geen samenvatting, **geen model-call**.
+- `export.py` — `write_inventory(..., include_summary)`: de `summary`-kolom verschijnt alleen mét
+  LLM; onder `--no-llm` wordt ze **weggelaten** (geen lege kolom). `run.py` zet
+  `include_summary = not providers.no_llm`.
+- `pipeline/dedup.py` + `relate.py` — `overlaps-with` voor partiële overlap: bevestigde cosine in
+  `[overlap_threshold, near_dup_threshold)` → `overlaps-with` (evidence = de cosine); op/boven
+  near-dup blijft `duplicate-of`. Hergebruikt de bestaande near-dup-cosine. `overlap_threshold`
+  (0.7) in `config.py`, gelogd in het manifest.
+- `config.py` — `overlap_threshold` + `summary_max_words` (eigen blok). `run.py`/`cli.py` additief:
+  `summarise`-stage in de timer, beide params doorgegeven + in manifest-params.
+- `tests/test_cloud_auth.py` — **fix:** module-niveau `import anthropic` → lazy via
+  `pytest.importorskip` in de fixture (+ in de api-key-test die `complete()` raakt). De suite
+  collecteert nu zónder `--extra cloud` en de cloud-only tests skippen netjes als de dep ontbreekt.
+
+**Determinisme/soevereiniteit:** `overlaps-with` is deterministisch; de samenvatting is de enige
+generatieve toevoeging (temp 0 via de driver, prompt gelogd); `--no-llm` blijft air-gapped en laat
+de kolom weg.
+
+**Tests:** `test_summarise.py` (samenvatting gezet + prompt gelogd + ≤max woorden; `--no-llm` geen
+call/geen summary), `test_dedup.py` (scharnierend paar: net ónder near-dup → `overlaps-with`, op/boven
+→ `duplicate-of`), `test_export.py` (kolom afwezig onder `include_summary=False`, op kolomnaam).
+`openspec validate output-hygiene --strict` ✓. `uv run pytest` **mét** cloud: 101 passed / 1 skipped;
+**zónder** cloud: 98 passed / 4 skipped (schone collectie, cloud-tests geskipt). `ruff` schoon.
+
 ### 2026-06-24 — fix: review-bevindingen op de validity-gate (robuustheid + precisie)
 
 **Waarom:** review (`/review` + `/security-review`) op `change/pdf-validity-gate` legde drie

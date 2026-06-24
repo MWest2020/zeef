@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     # Lager = agressiever samenvouwen (recall-risico op thematisch-verwante docs); hoger = alleen
     # vrijwel-identieke stukken vouwen. Default 0.9; stem af op de echte dataset.
     near_dup_threshold: float = 0.9
+    # Cosinus-ondergrens (< near_dup_threshold) waarboven een bevestigd kandidaatpaar als
+    # `overlaps-with` (partiële overlap) geldt i.p.v. duplicaat. De band [overlap_threshold,
+    # near_dup_threshold) wordt zo zichtbaar; gelogd in het manifest. Conservatief.
+    overlap_threshold: float = 0.7
+    # Max. woorden in de per-document inhoudssamenvatting (summarise-stage, LLM). Gelogd in het manifest.
+    summary_max_words: int = 100
     # LLM-backend losgekoppeld van het profiel, zodat het scope-filter-LLM onafhankelijk te
     # kiezen is (model-vergelijking): None volgt het profiel ("ollama" bij sovereign, "cloud"
     # bij cloud); expliciet "ollama" of "cloud" overschrijft dat — embeddings/rerank blijven

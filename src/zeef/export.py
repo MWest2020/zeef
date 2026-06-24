@@ -28,23 +28,27 @@ def _category(doc: Document) -> str:
     return doc.topic
 
 
-def write_inventory(selected: list[Document], path: Path) -> Path:
-    """Schrijf de kernselectie naar `inventory.xlsx` met de vaste kolommen."""
+def write_inventory(selected: list[Document], path: Path, *, include_summary: bool = True) -> Path:
+    """Schrijf de kernselectie naar `inventory.xlsx`. De `summary`-kolom verschijnt alleen wanneer er
+    samenvattingen zijn (LLM); onder `--no-llm` wordt ze weggelaten i.p.v. leeg getoond."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    columns = INVENTORY_COLUMNS if include_summary else tuple(
+        c for c in INVENTORY_COLUMNS if c != "summary")
     wb = Workbook()
     ws = wb.active
     ws.title = "inventory"
-    ws.append(list(INVENTORY_COLUMNS))
+    ws.append(list(columns))
     for doc in selected:
-        ws.append([
-            doc.id,
-            round(doc.scores.get("final", 0.0), 6),
-            _category(doc),
-            doc.doc_type,
-            str(doc.metadata.get("summary", "")),
-            doc.decision_reason,
-            doc.rationale,
-        ])
+        cells = {
+            "id": doc.id,
+            "score": round(doc.scores.get("final", 0.0), 6),
+            "category": _category(doc),
+            "doc_type": doc.doc_type,
+            "summary": str(doc.metadata.get("summary", "")),
+            "reason": doc.decision_reason,
+            "motivatie": doc.rationale,
+        }
+        ws.append([cells[c] for c in columns])
     wb.save(path)
     return path
 

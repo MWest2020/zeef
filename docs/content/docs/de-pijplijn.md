@@ -14,14 +14,15 @@ houdt de hele tussenliggende keten deterministisch.
 |---|-------|--------------|------|
 | 1 | **Criteria** | Zet de zoekvraag om in een expliciete, benoemde set relevantiecriteria. | **LLM (begin)** |
 | 2 | **Ingest & normalize** | Format-robuuste loaders (`.eml`/`.msg`, digitale PDF) → één canoniek `Document`. | nee |
-| 3 | **Relate** | Mailthreads uit headers, near-duplicates (MinHash + cosine). | nee |
+| 3 | **Relate** | Mailthreads uit headers, near-duplicates (MinHash + cosine); partiële overlap als `overlaps-with`. | nee |
 | 4 | **Scope-filter** | Regels eerst, LLM alleen voor twijfelgevallen — elke uitsluiting met reden. | regels + LLM-randgeval |
 | 5 | **Embed → Retrieve** | Chunks → vectoren; eerste kandidatenpas t.o.v. de zoekvraag (optioneel BM25-hybride). | nee |
 | 6 | **Rerank** | Deterministische precisiepas; bepaalt welke top-K naar de LLM-scoring gaat. | nee |
 | 7 | **Score** | LLM scoort de top-K tegen de criteria: relevantiescore **én** motivatie per document. | **LLM (eind)** |
 | 8 | **Select** | Instelbare cutoff (`--top-n` / `--threshold` / `--target`), recall-gericht. | nee |
 | 9 | **Topics** | Deterministische clustering van de kern → onderwerp/deelonderwerp-menu; LLM labelt alleen (TF-IDF-fallback onder `--no-llm`). | label-only |
-| 10 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `topics.json`, `run-manifest.json`, `audit.jsonl`. | nee |
+| 10 | **Summarise** | Per geselecteerd document een ≤100-woord inhoudssamenvatting; onder `--no-llm` overgeslagen (de `summary`-kolom vervalt dan). | **LLM** |
+| 11 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `topics.json`, `run-manifest.json`, `audit.jsonl`. | nee |
 
 {{< callout type="info" >}}
   **De regel voor wel/niet LLM.** Een LLM komt er alleen aan te pas bij een oordeel onder
@@ -103,8 +104,8 @@ richting insluiting. De gekozen modus en parameters worden gelogd.
 
 zeef levert op:
 
-- **`inventory.xlsx`** — id, score, **categorie** (= onderwerp/deelonderwerp), **doc_type** (bestandstype, eigen kolom), samenvatting, reden, **motivatie**.
-- **`relations.json`** — de relatiegraaf.
+- **`inventory.xlsx`** — id, score, **categorie** (= onderwerp/deelonderwerp), **doc_type** (bestandstype, eigen kolom), **samenvatting** (≤100 woorden — alleen mét LLM; onder `--no-llm` vervalt de kolom), reden, **motivatie**. Samenvatting (wát het document zegt) staat los van motivatie (waaróm het scoort).
+- **`relations.json`** — de relatiegraaf, inclusief `overlaps-with` voor partiële tekstoverlap (cosine in `[overlap_threshold, near_dup_threshold)`).
 - **`criteria.json`** — de gearticuleerde relevantiecriteria (de inspecteerbare definitie).
 - **`topics.json`** — het onderwerp → deelonderwerp → document-ids menu (het keuzemenu voor de verzoeker), met labels.
 - **`run-manifest.json`** — run-parameters (zoekvraag, providers/model, cutoff, clusterdrempels) en de vastgelegde per-stage runtimes.
