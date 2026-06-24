@@ -1,0 +1,177 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: EUPL-1.2 -->
+<!-- zeef — report.html: self-contained, read-only run-rapport. Geen server, geen netwerk, geen
+     externe bronnen. De run-data staat inline in het application/json-blok; vanilla JS rendert die
+     via de DOM-tekstweg (textContent), zodat onvertrouwde tekst nooit als markup uitvoert. -->
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>zeef — run-rapport</title>
+<style>
+  :root { --ink:#14181f; --soft:#4a535f; --line:#d3dae2; --ground:#eef1f5; --panel:#fff;
+          --accent:#1b43c8; --warn:#9a5414; --warnbg:#f6e7d6; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); line-height:1.5;
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  header h1 { font-size:28px; margin:0 0 4px; letter-spacing:-0.02em; }
+  .query { color:var(--soft); font-size:15px; }
+  .counts { margin-top:10px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px;
+            color:var(--soft); }
+  h2 { font-size:18px; margin:34px 0 10px; border-bottom:1px solid var(--line); padding-bottom:6px; }
+  details { background:var(--panel); border:1px solid var(--line); border-radius:3px; margin:6px 0; }
+  details.deel, details.doc, details.exreason { margin:6px 0 6px 18px; }
+  summary { cursor:pointer; padding:8px 12px; user-select:none; }
+  summary .label { font-weight:650; }
+  summary .count { color:var(--soft); font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+  .docname { font-family:ui-monospace,Menlo,monospace; font-size:13px; }
+  .docscore { float:right; font-family:ui-monospace,Menlo,monospace; font-weight:700;
+              color:var(--accent); }
+  .badge { display:inline-block; font-size:11px; padding:1px 7px; border-radius:2px; margin-left:8px;
+           vertical-align:middle; }
+  .badge.redaction { background:var(--warnbg); color:var(--warn); }
+  .docbody { padding:4px 14px 12px; border-top:1px solid var(--line); }
+  .field { margin:6px 0; font-size:14px; }
+  .fieldlabel { font-weight:650; color:var(--soft); }
+  .relations { margin-top:8px; }
+  .relation { font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--soft); }
+  .relkind { color:var(--accent); }
+  .exdoc { padding:3px 14px; font-family:ui-monospace,Menlo,monospace; font-size:13px;
+           border-top:1px solid var(--line); }
+  .missing { color:var(--warn); padding:3px 14px; }
+  footer { margin-top:40px; color:var(--soft); font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>zeef — run-rapport</h1>
+    <div class="query">Zoekvraag: <span id="query"></span></div>
+    <div class="counts" id="counts"></div>
+  </header>
+
+  <h2>Kernselectie — onderwerp / deelonderwerp</h2>
+  <div id="core"></div>
+
+  <h2>Uitgesloten — de rest, met reden</h2>
+  <div id="excluded"></div>
+
+  <footer>Read-only rapport, offline gegenereerd door zeef · <span id="generated"></span></footer>
+</div>
+
+<script type="application/json" id="zeef-data">__ZEEF_DATA__</script>
+<script>
+(function () {
+  "use strict";
+  var data = JSON.parse(document.getElementById("zeef-data").textContent);
+
+  function el(tag, text, cls) {
+    var e = document.createElement(tag);
+    if (text != null) e.textContent = text;  // DOM-tekstweg: onvertrouwde tekst escapet hier
+    if (cls) e.className = cls;
+    return e;
+  }
+  function field(label, value) {
+    var d = el("div", null, "field");
+    d.appendChild(el("span", label + ": ", "fieldlabel"));
+    d.appendChild(el("span", value, "fieldval"));
+    return d;
+  }
+  function byId(id) { return document.getElementById(id); }
+
+  byId("query").textContent = data.query || "—";
+  var c = data.counts || {};
+  byId("counts").textContent =
+    (c.selected || 0) + " geselecteerd · " + (c.out_of_scope || 0) + " uitgesloten (wv. " +
+    (c.validity_excluded || 0) + " validity) · " + (c.total || 0) + " totaal";
+  byId("generated").textContent = data.generated_at || "";
+
+  function renderDoc(doc, id) {
+    if (!doc) return el("div", id + " (detail ontbreekt)", "missing");
+    var wrap = el("details", null, "doc");
+    var sm = el("summary");
+    sm.appendChild(el("span", doc.name || doc.id, "docname"));
+    sm.appendChild(el("span", String(Math.round((doc.score || 0) * 100)), "docscore"));
+    if (doc.redaction) sm.appendChild(el("span", "gelakt", "badge redaction"));
+    wrap.appendChild(sm);
+    var body = el("div", null, "docbody");
+    if (doc.summary) body.appendChild(field("Samenvatting", doc.summary));
+    if (doc.rationale) body.appendChild(field("Motivatie", doc.rationale));
+    if (doc.reason) body.appendChild(field("Reden", doc.reason));
+    if (doc.redaction) body.appendChild(field("Status", doc.redaction));
+    var rels = doc.relations || [];
+    if (rels.length) {
+      var box = el("div", null, "relations");
+      box.appendChild(el("div", "Relaties", "fieldlabel"));
+      rels.forEach(function (r) {
+        var line = el("div", null, "relation");
+        line.appendChild(el("span", r.kind, "relkind"));
+        var tgt = (data.documents || {})[r.target];
+        line.appendChild(el("span", " → " + (tgt ? (tgt.name || r.target) : r.target)));
+        if (r.evidence) line.appendChild(el("span", " (" + r.evidence + ")"));
+        box.appendChild(line);
+      });
+      body.appendChild(box);
+    }
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  var core = byId("core");
+  var topics = (data.topics && data.topics.onderwerpen) || [];
+  topics.forEach(function (ond) {
+    var d = el("details", null, "onderwerp");
+    var s = el("summary");
+    s.appendChild(el("span", ond.label, "label"));
+    var subs = ond.deelonderwerpen || [];
+    var n = subs.reduce(function (a, sub) { return a + (sub.doc_ids || []).length; }, 0);
+    s.appendChild(el("span", " (" + n + ")", "count"));
+    d.appendChild(s);
+    subs.forEach(function (sub) {
+      var dd = el("details", null, "deel");
+      var ss = el("summary");
+      ss.appendChild(el("span", sub.label, "label"));
+      ss.appendChild(el("span", " (" + (sub.doc_ids || []).length + ")", "count"));
+      dd.appendChild(ss);
+      (sub.doc_ids || []).forEach(function (id) {
+        dd.appendChild(renderDoc((data.documents || {})[id], id));
+      });
+      d.appendChild(dd);
+    });
+    core.appendChild(d);
+  });
+
+  var ex = byId("excluded");
+  var groups = [["validity", "Validity-uitsluitingen (mechanisch onbruikbaar)"],
+                ["semantic", "Semantisch buiten scope"]];
+  groups.forEach(function (g) {
+    var items = (data.excluded || []).filter(function (e) { return e.kind === g[0]; });
+    if (!items.length) return;
+    var d = el("details", null, "exgroup");
+    var s = el("summary");
+    s.appendChild(el("span", g[1], "label"));
+    s.appendChild(el("span", " (" + items.length + ")", "count"));
+    d.appendChild(s);
+    var byReason = {};
+    items.forEach(function (e) { (byReason[e.reason] = byReason[e.reason] || []).push(e); });
+    Object.keys(byReason).sort().forEach(function (reason) {
+      var rd = el("details", null, "exreason");
+      var rs = el("summary");
+      rs.appendChild(el("span", reason, "label"));
+      rs.appendChild(el("span", " (" + byReason[reason].length + ")", "count"));
+      rd.appendChild(rs);
+      byReason[reason].forEach(function (e) {
+        var line = el("div", null, "exdoc");
+        line.appendChild(el("span", e.name || e.id, "docname"));
+        if (e.redaction) line.appendChild(el("span", "gelakt", "badge redaction"));
+        rd.appendChild(line);
+      });
+      d.appendChild(rd);
+    });
+    ex.appendChild(d);
+  });
+})();
+</script>
+</body>
+</html>

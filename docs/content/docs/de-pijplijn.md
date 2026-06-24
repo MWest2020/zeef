@@ -22,7 +22,7 @@ houdt de hele tussenliggende keten deterministisch.
 | 8 | **Select** | Instelbare cutoff (`--top-n` / `--threshold` / `--target`), recall-gericht. | nee |
 | 9 | **Topics** | Deterministische clustering van de kern → onderwerp/deelonderwerp-menu; LLM labelt alleen (TF-IDF-fallback onder `--no-llm`). | label-only |
 | 10 | **Summarise** | Per geselecteerd document een ≤100-woord inhoudssamenvatting; onder `--no-llm` overgeslagen (de `summary`-kolom vervalt dan). | **LLM** |
-| 11 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `topics.json`, `run-manifest.json`, `audit.jsonl`. | nee |
+| 11 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `topics.json`, `excluded.json`, `report.html`, `run-manifest.json`, `audit.jsonl`. | nee |
 
 {{< callout type="info" >}}
   **De regel voor wel/niet LLM.** Een LLM komt er alleen aan te pas bij een oordeel onder
@@ -108,6 +108,8 @@ zeef levert op:
 - **`relations.json`** — de relatiegraaf, inclusief `overlaps-with` voor partiële tekstoverlap (cosine in `[overlap_threshold, near_dup_threshold)`).
 - **`criteria.json`** — de gearticuleerde relevantiecriteria (de inspecteerbare definitie).
 - **`topics.json`** — het onderwerp → deelonderwerp → document-ids menu (het keuzemenu voor de verzoeker), met labels.
+- **`excluded.json`** — de volledige uitgesloten set met redenen, machine-leesbaar; validity-uitsluitingen (`validity:*`) onderscheiden van semantische out-of-scope. Maakt "zowel de 100 als de rest" controleerbaar.
+- **`report.html`** — een **self-contained, offline** rapport: de kern als inklapbaar onderwerp/deelonderwerp-menu én de uitgesloten rest per reden, met per document score/motivatie/samenvatting/reden/relaties en de gelakt-status. System fonts, vanilla JS, géén netwerk — de run-data staat inline; opent met `file://`. Onvertrouwde tekst wordt bij het renderen geëscaped.
 - **`run-manifest.json`** — run-parameters (zoekvraag, providers/model, cutoff, clusterdrempels) en de vastgelegde per-stage runtimes.
 - **`audit.jsonl`** — de volledige [audit-trail](../audit-trail).
 

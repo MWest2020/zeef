@@ -16,10 +16,13 @@ from typing import Any
 from zeef.audit import AuditLog
 from zeef.config import CutoffMode
 from zeef.export import (
+    build_report_data,
     write_criteria,
+    write_excluded,
     write_inventory,
     write_manifest,
     write_relations,
+    write_report_html,
     write_topics,
 )
 from zeef.models import Criteria, Document
@@ -137,6 +140,9 @@ def run_converge(
         write_relations(docs, out_dir / "relations.json")
         write_criteria(criteria, out_dir / "criteria.json")
         write_topics(topics, out_dir / "topics.json")
+        write_excluded(docs, out_dir / "excluded.json")
+        report = build_report_data(query, run_started.isoformat(), selected, topics, docs)
+        write_report_html(report, out_dir / "report.html")
 
     run_stage("export", _export)
     total_ms = round((time.perf_counter() - wall_started) * 1000, 1)
@@ -182,8 +188,8 @@ def run_converge(
     write_manifest(manifest, out_dir / "run-manifest.json")
     audit.event("export", "artifacts-written", inputs={
         "out_dir": str(out_dir),
-        "files": ["inventory.xlsx", "relations.json", "criteria.json",
-                  "topics.json", "run-manifest.json", "audit.jsonl"],
+        "files": ["inventory.xlsx", "relations.json", "criteria.json", "topics.json",
+                  "excluded.json", "report.html", "run-manifest.json", "audit.jsonl"],
     })
     return RunResult(documents=docs, selected=selected, out_dir=out_dir,
                      criteria=criteria, manifest=manifest)
