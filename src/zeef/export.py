@@ -15,6 +15,11 @@ from typing import Any
 from openpyxl import Workbook
 
 from zeef.models import Criteria, Document
+from zeef.pipeline.validity import REDACTION_META_KEY
+
+# Single-file HTML-template + de marker waar de inline run-data in wordt geïnjecteerd.
+_REPORT_TEMPLATE = Path(__file__).parent / "templates" / "report.html"
+_DATA_MARKER = "__ZEEF_DATA__"
 
 # `category` draagt nu het onderwerp/deelonderwerp (topic-clustering), niet het bestandstype;
 # dat laatste blijft behouden in een eigen `doc_type`-kolom zodat geen informatie verloren gaat.
@@ -90,6 +95,68 @@ def write_manifest(manifest: dict[str, Any], path: Path) -> Path:
     een run navolgbaar en vergelijkbaar zónder de volledige audit-log te hoeven herleiden."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
+def _doc_name(doc: Document) -> str:
+    return doc.source_path.rsplit("/", 1)[-1]
+
+
+def _excluded_entry(doc: Document) -> dict:
+    """Eén uitgesloten document, met reden-categorie: validity (mechanisch) vs semantisch."""
+    kind = "validity" if doc.decision_reason.startswith("validity:") else "semantic"
+    return {"id": doc.id, "name": _doc_name(doc), "doc_type": doc.doc_type,
+            "reason": doc.decision_reason, "kind": kind,
+            "redaction": str(doc.metadata.get(REDACTION_META_KEY, ""))}
+
+
+def write_excluded(docs: list[Document], path: Path) -> Path:
+    """Schrijf de volledige uitgesloten set + redenen machine-leesbaar naar `excluded.json`
+    (de 'rest' naast de kern; validity onderscheiden van semantische out-of-scope)."""
+    entries = [_excluded_entry(d) for d in docs if d.decision == "out_of_scope"]
+    payload = {"excluded": entries, "count": len(entries),
+               "validity": sum(1 for e in entries if e["kind"] == "validity"),
+               "semantic": sum(1 for e in entries if e["kind"] == "semantic")}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
+def build_report_data(query: str, generated_at: str, selected: list[Document], topics: dict,
+                      all_docs: list[Document]) -> dict:
+    """Bouw het presentatie-model voor het rapport — alléén presentatievelden (geen documenttekst).
+    Redactie-status komt uit de canonieke `REDACTION_META_KEY`, niet uit `decision_reason`."""
+    documents = {
+        d.id: {
+            "id": d.id, "name": _doc_name(d), "score": round(d.scores.get("final", 0.0), 4),
+            "rationale": d.rationale, "summary": str(d.metadata.get("summary", "")),
+            "reason": d.decision_reason, "doc_type": d.doc_type,
+            "topic": d.topic, "subtopic": d.subtopic,
+            "redaction": str(d.metadata.get(REDACTION_META_KEY, "")),
+            "relations": [{"kind": r.kind, "target": r.target_id, "evidence": r.evidence}
+                          for r in d.relations],
+        }
+        for d in selected
+    }
+    excluded = [_excluded_entry(d) for d in all_docs if d.decision == "out_of_scope"]
+    counts = {
+        "total": len(all_docs), "selected": len(documents), "out_of_scope": len(excluded),
+        "validity_excluded": sum(1 for e in excluded if e["kind"] == "validity"),
+        "undecided": sum(1 for d in all_docs if d.decision == "undecided"),
+    }
+    return {"query": query, "generated_at": generated_at, "counts": counts,
+            "topics": topics, "documents": documents, "excluded": excluded}
+
+
+def write_report_html(data: dict, path: Path) -> Path:
+    """Injecteer de run-data inline in het single-file template en schrijf `report.html`. De JSON
+    wordt `<` / `>` / `&`-geëscaped zodat documentinhoud het `<script>`-blok nooit kan afsluiten
+    (JSON.parse herstelt de `\\u00xx`-escapes in de browser). Geen netwerk, opent via `file://`."""
+    blob = json.dumps(data, ensure_ascii=False)
+    blob = blob.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
+    template = _REPORT_TEMPLATE.read_text(encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(template.replace(_DATA_MARKER, blob), encoding="utf-8")
     return path
 
 

@@ -36,7 +36,7 @@ reproduceerbaar en herleidbaar via een append-only audit-trail.
 | 9 | **Select** | Instelbare cutoff (`--top-n` / `--threshold` / `--target`), recall-gericht | nee |
 | 10 | **Topics** | Deterministische clustering → onderwerp/deelonderwerp-menu; LLM labelt alleen | label-only |
 | 11 | **Summarise** | Per geselecteerd document een ≤100-woord inhoudssamenvatting; onder `--no-llm` overgeslagen (kolom afwezig) | **LLM** |
-| 12 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `topics.json`, `run-manifest.json`, `audit.jsonl` | nee |
+| 12 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `topics.json`, `excluded.json`, `report.html`, `run-manifest.json`, `audit.jsonl` | nee |
 
 **Twee LLM-momenten, de rest deterministisch.** De regel: LLM alleen bij een oordeel onder
 taalkundige ambiguïteit zónder mechanische grondwaarheid, én waar een motivatie de
@@ -89,6 +89,9 @@ categorie = onderwerp/deelonderwerp, doc_type, samenvatting — alleen mét LLM,
 reden, **motivatie**), `relations.json` (relatiegraaf incl. `overlaps-with` voor partiële overlap),
 `criteria.json` (de gearticuleerde relevantiecriteria),
 `topics.json` (het onderwerp/deelonderwerp-keuzemenu voor de verzoeker),
+`excluded.json` (de volledige uitgesloten set + redenen, validity vs semantisch),
+`report.html` (een **self-contained, offline** rapport — kern als inklapbaar menu én de uitgesloten
+rest, opent met `file://` zonder server of netwerk),
 `run-manifest.json` (run-parameters + per-stage runtimes) en `audit.jsonl` (volledige audit-log).
 
 ## Status

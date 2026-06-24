@@ -6,6 +6,35 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-24 — feat: viewer-ui — self-contained, offline `report.html` + `excluded.json`
+
+**Waarom:** de criteria eisen dat het resultaat controleerbaar is — **zowel de geselecteerde ~100
+als de rest** — en dat de deelonderwerpen als keuzemenu aan de verzoeker voorgelegd kunnen worden.
+Een ruwe `inventory.xlsx` + losse JSON is dat niet. Eén self-contained HTML-rapport maakt dit
+tastbaar en is tegelijk de zichtbare navolgbaarheids-/soevereiniteitsdemo.
+
+**Wat (change #4 `viewer-ui`):**
+- `src/zeef/templates/report.html` (nieuw) — **single-file**, read-only rapport: EUPL-1.2-header,
+  system fonts, vanilla JS, **geen** CDN / externe fonts / externe scripts / `fetch`. De run-data
+  staat inline in een `<script type="application/json">`-blok; opent met `file://`, air-gapped.
+  Toont de kern als inklapbaar onderwerp/deelonderwerp-menu (per document score/motivatie/
+  samenvatting/reden/relaties + gelakt-status) en de uitgesloten rest per reden.
+- `export.py` — `write_excluded` → **`excluded.json`** (volledige uitgesloten set + redenen,
+  validity vs semantisch); `build_report_data` (alléén presentatievelden, geen documenttekst;
+  gelakt-status uit de canonieke `REDACTION_META_KEY`); `write_report_html` injecteert de data en
+  escapet `<`/`>`/`&` zodat documentinhoud het `<script>`-blok niet kan afsluiten.
+- `pipeline/run.py` (additief) — `report.html` + `excluded.json` in de export-stap en in de
+  audit-artefactenlijst.
+
+**Security/soevereiniteit:** alle onvertrouwde tekst (LLM-samenvatting/labels, titels) wordt bij het
+renderen via de DOM-tekstweg geëscaped (geen `innerHTML` van onvertrouwde data), bovenop de
+inline-JSON-escaping. Het rapport haalt niets extern op — getest.
+
+**Tests:** `test_viewer.py` — offline/geen externe requests (geen URL/`fetch`/externe script/link),
+escaping (een `<script>`-payload verschijnt alleen geëscaped, niet als live tag), uitgesloten set per
+reden (validity vs semantisch), gelakt-status uit `REDACTION_META_KEY`. `openspec validate viewer-ui
+--strict` ✓. `pytest` mét cloud 107/1, zónder cloud 104/4 (schone collectie). `ruff` schoon.
+
 ### 2026-06-24 — fix: review-bevindingen op output-hygiene (formule-injectie + bedrading)
 
 **Waarom:** review op `change/output-hygiene` leverde één security-fix en twee kleinere punten op.
