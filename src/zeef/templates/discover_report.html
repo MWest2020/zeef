@@ -1,0 +1,101 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: EUPL-1.2 -->
+<!-- zeef — discover report.html: self-contained, read-only onderwerp-landkaart. Geen server, geen
+     netwerk, geen externe bronnen. De landkaart staat inline in het application/json-blok; vanilla
+     JS rendert via de DOM-tekstweg (textContent), zodat onvertrouwde tekst nooit als markup uitvoert. -->
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>zeef — ontdekte onderwerp-landkaart</title>
+<style>
+  :root { --ink:#14181f; --soft:#4a535f; --line:#d3dae2; --ground:#eef1f5; --panel:#fff;
+          --accent:#1b43c8; --warn:#9a5414; --warnbg:#f6e7d6; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); line-height:1.5;
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  header h1 { font-size:28px; margin:0 0 4px; letter-spacing:-0.02em; }
+  .lead { color:var(--soft); font-size:15px; }
+  .counts { margin-top:10px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px;
+            color:var(--soft); }
+  h2 { font-size:18px; margin:30px 0 10px; border-bottom:1px solid var(--line); padding-bottom:6px; }
+  details { background:var(--panel); border:1px solid var(--line); border-radius:3px; margin:6px 0; }
+  details.deel { margin:6px 0 6px 18px; }
+  summary { cursor:pointer; padding:8px 12px; user-select:none; }
+  summary .label { font-weight:650; }
+  summary .count { color:var(--soft); font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+  .summary { padding:4px 14px 8px; color:var(--soft); font-size:14px; border-top:1px solid var(--line); }
+  .docs { padding:2px 14px 10px; }
+  .doc { font-family:ui-monospace,Menlo,monospace; font-size:13px; padding:2px 0; }
+  .badge { display:inline-block; font-size:11px; padding:1px 7px; border-radius:2px; margin-left:8px;
+           background:var(--warnbg); color:var(--warn); }
+  footer { margin-top:40px; color:var(--soft); font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>zeef — ontdekte onderwerp-landkaart</h1>
+    <div class="lead">Wat zit er in dit corpus? Tweelaags ontdekt zonder vooraf een zoekvraag.</div>
+    <div class="counts" id="counts"></div>
+  </header>
+  <h2>Onderwerpen</h2>
+  <div id="map"></div>
+  <footer>Read-only, offline gegenereerd door zeef · discover · <span id="generated"></span></footer>
+</div>
+
+<script type="application/json" id="zeef-data">__ZEEF_DATA__</script>
+<script>
+(function () {
+  "use strict";
+  var data = JSON.parse(document.getElementById("zeef-data").textContent);
+  function el(tag, text, cls) {
+    var e = document.createElement(tag);
+    if (text != null) e.textContent = text;  // DOM-tekstweg: onvertrouwde tekst escapet hier
+    if (cls) e.className = cls;
+    return e;
+  }
+  function byId(id) { return document.getElementById(id); }
+  var docs = data.documents || {};
+
+  var onderwerpen = data.onderwerpen || [];
+  var deelTotaal = onderwerpen.reduce(function (a, o) { return a + (o.deelonderwerpen || []).length; }, 0);
+  byId("counts").textContent =
+    Object.keys(docs).length + " documenten · " + onderwerpen.length + " onderwerpen · " +
+    deelTotaal + " deelonderwerpen";
+  byId("generated").textContent = data.generated_at || "";
+
+  var map = byId("map");
+  onderwerpen.forEach(function (ond) {
+    var d = el("details", null, "onderwerp");
+    var s = el("summary");
+    s.appendChild(el("span", ond.label, "label"));
+    var subs = ond.deelonderwerpen || [];
+    var n = subs.reduce(function (a, sub) { return a + (sub.doc_ids || []).length; }, 0);
+    s.appendChild(el("span", " (" + n + ")", "count"));
+    d.appendChild(s);
+    subs.forEach(function (sub) {
+      var dd = el("details", null, "deel");
+      var ss = el("summary");
+      ss.appendChild(el("span", sub.label, "label"));
+      ss.appendChild(el("span", " (" + (sub.doc_ids || []).length + ")", "count"));
+      dd.appendChild(ss);
+      if (sub.summary) dd.appendChild(el("div", sub.summary, "summary"));
+      var list = el("div", null, "docs");
+      (sub.doc_ids || []).forEach(function (id) {
+        var doc = docs[id] || {};
+        var line = el("div", null, "doc");
+        line.appendChild(el("span", doc.name || id));
+        if (doc.redaction) line.appendChild(el("span", "gelakt", "badge"));
+        list.appendChild(line);
+      });
+      dd.appendChild(list);
+      d.appendChild(dd);
+    });
+    map.appendChild(d);
+  });
+})();
+</script>
+</body>
+</html>

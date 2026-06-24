@@ -82,6 +82,18 @@ Volledig air-gapped, zonder LLM of netwerk:
 zeef converge ./docs --query "..." --profile sovereign --no-llm --target 100
 ```
 
+**Ontdekken zonder zoekvraag** — `discover` doorzoekt een ongezien corpus en levert de
+onderwerp/deelonderwerp-landkaart (wát zit erin?), vóór er een query is. Dezelfde clustering als
+`converge`, maar over het hele valide, gededupliceerde corpus; per cluster een label en (mét LLM)
+een korte samenvatting. Uitvoer: `discover-map.json` + een self-contained `report.html`.
+
+```
+zeef discover ./docs --profile sovereign
+```
+
+Voor een geloofwaardige (semantische) landkaart: `ZEEF_SOVEREIGN_EMBED=ollama`. Onder `--no-llm`
+blijven TF-IDF-labels over, zonder samenvattingen.
+
 `--score-top-k N` begrenst hoeveel reranked kandidaten de LLM-scoring beoordeelt (`0` = alle).
 
 Levert op (in een verse run-map per aanroep): de geselecteerde set, `inventory.xlsx` (id, score,

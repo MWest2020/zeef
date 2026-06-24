@@ -23,6 +23,27 @@ def candidates_of(docs: list[Document]) -> list[Document]:
     return [d for d in docs if d.decision != "out_of_scope" and d.text]
 
 
+def embed_chunks(
+    docs: list[Document], embed: EmbeddingProvider, audit: AuditLog,
+    *, chunk_size: int = DEFAULT_CHUNK_SIZE,
+) -> list[Document]:
+    """Chunk + embed elk valide, niet-uitgesloten document en bewáár de chunks (mét embedding) op het
+    document. Voor de query-loze discover-route: zo heeft `cluster_topics` echte chunk-embeddings (en
+    werkt de `max_chunks_per_doc`-cap), zonder per-document lazy te herembedden. Geeft het valide,
+    gededupliceerde corpus terug."""
+    targets = candidates_of(docs)
+    for doc in targets:
+        chunks = chunk_document(doc, chunk_size)
+        vecs = embed.embed([c.text for c in chunks])
+        for chunk, vec in zip(chunks, vecs):
+            chunk.embedding = vec
+        doc.chunks = chunks
+    audit.event("embed", "embed-corpus", model=getattr(embed, "name", "?"),
+                location=getattr(embed, "location", "?"),
+                inputs={"documents": len(targets), "chunk_size": chunk_size})
+    return targets
+
+
 def retrieve(
     docs: list[Document],
     embed: EmbeddingProvider,

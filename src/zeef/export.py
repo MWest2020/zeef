@@ -17,9 +17,21 @@ from openpyxl import Workbook
 from zeef.models import Criteria, Document
 from zeef.pipeline.validity import REDACTION_META_KEY
 
-# Single-file HTML-template + de marker waar de inline run-data in wordt geïnjecteerd.
+# Single-file HTML-templates + de marker waar de inline run-data in wordt geïnjecteerd.
 _REPORT_TEMPLATE = Path(__file__).parent / "templates" / "report.html"
+_DISCOVER_TEMPLATE = Path(__file__).parent / "templates" / "discover_report.html"
 _DATA_MARKER = "__ZEEF_DATA__"
+
+
+def _inject_json_html(template: Path, data: dict, path: Path) -> Path:
+    """Injecteer `data` als inline JSON in `template` en schrijf het naar `path`. `<`/`>`/`&` worden
+    geëscaped zodat documentinhoud het `<script>`-blok nooit kan afsluiten (JSON.parse herstelt de
+    `\\u00xx`-escapes in de browser). Eén self-contained bestand, opent via `file://`."""
+    blob = json.dumps(data, ensure_ascii=False)
+    blob = blob.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(template.read_text(encoding="utf-8").replace(_DATA_MARKER, blob), encoding="utf-8")
+    return path
 
 # `category` draagt nu het onderwerp/deelonderwerp (topic-clustering), niet het bestandstype;
 # dat laatste blijft behouden in een eigen `doc_type`-kolom zodat geen informatie verloren gaat.
@@ -149,15 +161,21 @@ def build_report_data(query: str, generated_at: str, selected: list[Document], t
 
 
 def write_report_html(data: dict, path: Path) -> Path:
-    """Injecteer de run-data inline in het single-file template en schrijf `report.html`. De JSON
-    wordt `<` / `>` / `&`-geëscaped zodat documentinhoud het `<script>`-blok nooit kan afsluiten
-    (JSON.parse herstelt de `\\u00xx`-escapes in de browser). Geen netwerk, opent via `file://`."""
-    blob = json.dumps(data, ensure_ascii=False)
-    blob = blob.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
-    template = _REPORT_TEMPLATE.read_text(encoding="utf-8")
+    """Schrijf het converge-rapport (`report.html`) — self-contained, inline data, geen netwerk."""
+    return _inject_json_html(_REPORT_TEMPLATE, data, path)
+
+
+def write_discover_map(landkaart: dict, path: Path) -> Path:
+    """Schrijf de ontdekte onderwerp-landkaart naar JSON (onderwerpen → deelonderwerpen → doc_ids,
+    met labels en per-cluster samenvattingen)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(template.replace(_DATA_MARKER, blob), encoding="utf-8")
+    path.write_text(json.dumps(landkaart, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
+
+
+def write_discover_report(landkaart: dict, path: Path) -> Path:
+    """Schrijf het discover-rapport (`report.html`) — self-contained, inline landkaart, geen netwerk."""
+    return _inject_json_html(_DISCOVER_TEMPLATE, landkaart, path)
 
 
 def write_relations(docs: list[Document], path: Path) -> Path:

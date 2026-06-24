@@ -46,6 +46,9 @@ DEFAULT_ONDERWERP_DISTANCE = 0.8
 DEFAULT_DEELONDERWERP_DISTANCE = 0.5
 DEFAULT_MIN_CLUSTER_SIZE = 3
 DEFAULT_MAX_CHUNKS_PER_DOC = 40
+# Discover knipt over een vol corpus i.p.v. een kleine selectie: een lagere min-cluster-size
+# voorkomt dat alles in één "Overig"-bak valt (design D4).
+DEFAULT_DISCOVER_MIN_CLUSTER_SIZE = 2
 
 
 @dataclass(frozen=True)
