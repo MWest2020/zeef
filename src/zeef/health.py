@@ -24,7 +24,9 @@ _REDACTION_MARKERS = re.compile(
     r"\[(?:…|\.\.\.|gelakt|zwartgelakt|weggelakt|verwijderd)\]", re.IGNORECASE
 )
 # Woo-uitzonderingsannotaties (artikelverwijzingen) zoals 5.1.2e, 5.1.1, 10.1, 10.2, 11.1.
-_WOO_ANNOTATION = re.compile(r"\b(?:5\.1\.[125]\w?|10\.[12]|11\.1)\b")
+# Suffixen expliciet opgesomd i.p.v. `\w?`: dat laatste matchte ook gewone artikelnummers als
+# 5.1.10 / 5.1.2a en blies de redaction_ratio op voor niet-gelakte tekst.
+_WOO_ANNOTATION = re.compile(r"\b(?:5\.1\.(?:1|2e?|5)|10\.[12]|11\.1)\b")
 
 
 def redaction_ratio(text: str) -> float:

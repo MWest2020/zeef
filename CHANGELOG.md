@@ -6,6 +6,36 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-24 — fix: review-bevindingen op de validity-gate (robuustheid + precisie)
+
+**Waarom:** review (`/review` + `/security-review`) op `change/pdf-validity-gate` legde drie
+acteerbare punten bloot.
+
+**Wat:**
+- `loaders/pdf_loader.py` — `_extract_text` ving alleen `(PyPdfError, OSError, ValueError)`. pypdf
+  gooit op vijandige invoer óók `KeyError`/`struct.error`/`RecursionError`; die vielen door naar
+  ingest's brede catch en werden *gedropt* i.p.v. als `parse_ok=false` vastgelegd — in strijd met
+  de "recorded, not dropped"-eis. Verbreed naar `except Exception` (zoals ingest zelf), zodat een
+  corrupt document consequent een document mét `parse_ok=false` wordt en de gate het afhandelt.
+- `health.py` — Woo-annotatie-regex `5\.1\.[125]\w?` overmatchte gewone artikelnummers (`5.1.10`,
+  `5.1.2a`) en blies `redaction_ratio` op voor niet-gelakte tekst. Vervangen door opgesomde
+  suffixen `5\.1\.(?:1|2e?|5)`. (Errde naar behouden, dus geen valse uitsluiting — wel valse
+  "gelakt"-markering.)
+- `pipeline/validity.py` — `from langdetect import detect` stond ín `_language_signal` (per
+  document her-uitgevoerd). Naar module-niveau gehesen, één keer geprobeerd bij import.
+- `pipeline/validity.py` — **besluit op review-#2:** `metadata["redaction_note"]` is de *canonieke,
+  duurzame* "vermoedelijk gelakt"-markering; `decision_reason` is een vluchtige echo (select() en
+  scope-filter overschrijven die downstream). Vastgelegd in `REDACTION_META_KEY` + comments, zodat
+  inventory/export en de viewer (change #4) de metadata lezen, niet `decision_reason`.
+
+**Niet gewijzigd (bewust):** dubbele defaults in `run.py` vs `config.py` — dat spiegelt de
+bestaande conventie (`relate.py`'s `DEFAULT_NEAR_DUP_THRESHOLD` vs `Settings.near_dup_threshold`).
+
+**Tests:** `tests/test_validity.py` +1 (`test_woo_annotation_does_not_overmatch_ordinary_article_numbers`).
+Gelakt-behoud- en grens-test blijven groen (de grens-test scharniert op expliciete ratio-overrides,
+los van de regex). Volledige suite: `pytest` **82 passed / 1 skipped**; `ruff` schoon;
+`openspec validate pdf-validity-gate --strict` ✓.
+
 ### 2026-06-24 — feat: validity-gate — deterministische pre-flight voor de PDF-pivot
 
 **Waarom:** de verkenning draait op een **PDF-only** dataset. De e-mailvormige exclusie-regels

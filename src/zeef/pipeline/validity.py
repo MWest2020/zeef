@@ -15,10 +15,20 @@ from zeef.audit import AuditLog
 from zeef.health import CHAR_COUNT, PARSE_OK, REDACTION_RATIO
 from zeef.models import Document
 
+try:  # optionele taaldetectie; één keer geprobeerd bij import, niet per document
+    from langdetect import detect as _detect  # type: ignore
+except ImportError:  # pragma: no cover - langdetect is optioneel
+    _detect = None
+
 STAGE = "validity"
 
 # Markering op een behouden, vermoedelijk gelakt document (zacht; verandert de selectie niet).
 REDACTION_NOTE = "verminderd leesbaar (vermoedelijk gelakt)"
+# Metadata-key die de "vermoedelijk gelakt"-status *canoniek* en duurzaam draagt. `decision_reason`
+# krijgt dezelfde markering bij de gate, maar is vluchtig: select() en scope-filter overschrijven
+# `decision_reason` downstream. Wie de gelakt-status leest (inventory/export, viewer) moet daarom
+# `metadata["redaction_note"]` gebruiken, niet `decision_reason`.
+REDACTION_META_KEY = "redaction_note"
 
 
 def validity_gate(
@@ -73,7 +83,9 @@ def _exclude(doc: Document, audit: AuditLog, check: str, detail: str) -> None:
 
 def _keep_redacted(doc: Document, audit: AuditLog, char_count: int, ratio: float) -> None:
     """Behoud een vermoedelijk gelakt document; markeer het, sluit het niet uit (design V3)."""
-    doc.metadata["redaction_note"] = REDACTION_NOTE
+    # `redaction_note` is de duurzame, canonieke markering; `decision_reason` is een vluchtige
+    # echo (overschreven door select()/scope-filter) — zie REDACTION_META_KEY.
+    doc.metadata[REDACTION_META_KEY] = REDACTION_NOTE
     doc.decision_reason = REDACTION_NOTE  # blijft `undecided`; gaat door naar retrieve/score
     audit.event(STAGE, "redaction-kept", document_ids=[doc.id],
                 inputs={"char_count": char_count, "redaction_ratio": ratio,
@@ -86,13 +98,10 @@ def _language_signal(doc: Document, audit: AuditLog) -> None:
     Detecteert de taal alleen als een optionele detector aanwezig is; ontbreekt die, dan
     'taal onbekend'. Puur informatief in de audit-log.
     """
-    lang = "unknown"
-    try:  # optionele afhankelijkheid; afwezigheid is geen fout
-        from langdetect import detect  # type: ignore
-
-        if doc.text.strip():
-            lang = detect(doc.text)
-    except Exception:  # noqa: BLE001 — detector afwezig of onzeker → 'unknown', zacht
-        lang = "unknown"
-    if lang != "unknown":
-        audit.event(STAGE, "language", document_ids=[doc.id], inputs={"language": lang})
+    if _detect is None or not doc.text.strip():
+        return  # detector afwezig of geen tekst → 'taal onbekend' (zacht), geen event
+    try:
+        lang = _detect(doc.text)
+    except Exception:  # noqa: BLE001 — detector onzeker op deze tekst → zacht overslaan
+        return
+    audit.event(STAGE, "language", document_ids=[doc.id], inputs={"language": lang})

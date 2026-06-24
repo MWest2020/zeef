@@ -15,7 +15,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from pypdf import PdfReader
-from pypdf.errors import PyPdfError
 
 from zeef.health import health_metadata
 from zeef.ids import content_id
@@ -49,10 +48,16 @@ class PdfLoader:
 
 
 def _extract_text(path: Path) -> tuple[str, bool, str]:
-    """Geef (tekst, parse_ok, foutmelding). Een corrupte PDF faalt zacht: parse_ok=False."""
+    """Geef (tekst, parse_ok, foutmelding). Een corrupte PDF faalt zacht: parse_ok=False.
+
+    Breed `except Exception`: pypdf gooit op vijandige/kapotte invoer ook niet-pypdf-fouten
+    (`KeyError`, `struct.error`, `RecursionError`, …). Zou de gate die niet vangen, dan valt
+    het door naar ingest's brede catch en wordt het document stilletjes *gedropt* i.p.v. als
+    `parse_ok=false` vastgelegd — precies de "recorded, not dropped"-eis die deze stage borgt.
+    """
     try:
         reader = PdfReader(str(path))
         parts = [page.extract_text() or "" for page in reader.pages]
         return "\n".join(parts), True, ""
-    except (PyPdfError, OSError, ValueError) as exc:
+    except Exception as exc:  # noqa: BLE001 — een corrupte PDF mag de run niet stoppen
         return "", False, str(exc)

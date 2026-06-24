@@ -151,3 +151,11 @@ def test_redaction_ratio_is_zero_for_clean_text():
     assert redaction_ratio("Gewoon een nette zin zonder enige redactie.") == 0.0
     assert redaction_ratio("") == 0.0
     assert redaction_ratio("█████ [gelakt] 5.1.2e") > 0.0
+
+
+def test_woo_annotation_does_not_overmatch_ordinary_article_numbers():
+    # #3-regressie: gewone artikelnummers (5.1.10 / 5.1.2a) zijn géén laksignaal — de oude
+    # `\w?` matchte die wel en blies de ratio op voor niet-gelakte tekst.
+    assert redaction_ratio("Zie besluit 5.1.10 en 5.1.2a in de bijlage.") == 0.0
+    # De echte Woo-uitzonderingsannotatie telt nog wél.
+    assert redaction_ratio("uitzondering 5.1.2e van toepassing") > 0.0
