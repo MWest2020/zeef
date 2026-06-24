@@ -17,7 +17,7 @@
 
 ## 4. Labelling (LLM + fallback)
 
-- [ ] 4.1 Per cluster: pick representative snippets → one LLM call → short Dutch label; temperature-0; log the exact prompt, model and location — *branch wired (`_llm_label`); quality pass + tests deferred to the LLM pass*
+- [x] 4.1 Per cluster: representative snippets (medoid + nearest members, title + first lines) → one LLM call → short Dutch label; prompt/model/location logged (`topic_labels._llm_label`). Tested with a spy LLM (label lands, `source != fallback`, audit event per cluster). Demo-model quality pass is manual, not in tests.
 - [x] 4.2 `--no-llm`: build labels from most-distinctive terms (TF-IDF cluster vs rest), mark `source: fallback`, make no LLM call
 
 ## 5. Export
@@ -37,9 +37,11 @@
 - [x] 7.3 `topics.json` shape; inventory `category` = topic and `doc_type` in its own column (assert on column name, not index)
 - [x] 7.4 `openspec validate topic-clustering --strict`
 - [x] 7.5 Full suite green (`uv run pytest`), `ruff` clean, ≤200-line file check
+- [x] 7.6 Chunk→document aggregation (T7): a document with chunks split over two clusters gets exactly one onderwerp/deelonderwerp by majority, deterministically (the asymmetric failure mode)
+- [x] 7.7 LLM-label branch tested with a spy: label lands on the cluster, `source` is no longer fallback, audit event per cluster with prompt/model/location
 
 ## 8. Docs & changelog
 
-- [ ] 8.1 `docs/.../de-pijplijn.md`: add the topics stage and the onderwerp/deelonderwerp menu; note the `category` rebind
-- [ ] 8.2 README + artifact list: `topics.json` as a run output
-- [ ] 8.3 `CHANGELOG.md`: dated entry (what, why, files, test result)
+- [x] 8.1 `docs/.../de-pijplijn.md`: add the topics stage and the onderwerp/deelonderwerp menu; note the `category` rebind + the canonical topic field (T7)
+- [x] 8.2 README + artifact list: `topics.json` as a run output
+- [x] 8.3 `CHANGELOG.md`: dated entry (what, why, files, test result)

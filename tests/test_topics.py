@@ -22,7 +22,7 @@ _A, _B, _C = [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]
 
 
 class SpyLLM:
-    """Registreert elke aanroep; mag onder --no-llm nooit worden geraakt."""
+    """Registreert elke aanroep en geeft een vast label terug; mag onder --no-llm niet geraakt."""
 
     name, location = "spy-llm", "local"
 
@@ -31,12 +31,21 @@ class SpyLLM:
 
     def complete(self, prompt, *, system=None):
         self.calls.append(prompt)
-        return "Label"
+        return "Cultuurbeleid"
+
+
+def _events(audit):
+    return [json.loads(line) for line in audit.path.read_text(encoding="utf-8").splitlines()]
 
 
 def _doc(i, vec, text):
+    return _multichunk_doc(i, [vec], text)
+
+
+def _multichunk_doc(i, vecs, text):
     d = Document(id=f"d{i:02d}", source_path=f"/d{i}", doc_type="pdf_digital", text=text)
-    d.chunks = [Chunk(id=f"d{i:02d}#0", ordinal=0, text=text, embedding=vec)]
+    d.chunks = [Chunk(id=f"d{i:02d}#{j}", ordinal=j, text=text, embedding=v)
+                for j, v in enumerate(vecs)]
     d.decision = "selected"
     return d
 
@@ -120,3 +129,45 @@ def test_two_runs_same_params_yield_identical_topics_json(corpus, tmp_path):
     topics_a = json.loads((out_a / "topics.json").read_text(encoding="utf-8"))
     topics_b = json.loads((out_b / "topics.json").read_text(encoding="utf-8"))
     assert topics_a == topics_b and topics_a["onderwerpen"]
+
+
+_SPLIT_PARAMS = {"onderwerp_distance": 0.5, "deelonderwerp_distance": 0.2, "min_cluster_size": 2}
+
+
+def _split_corpus():
+    # Twee strakke clusters; één document heeft 2 chunks in A en 1 in B → meerderheid A (T7).
+    return [
+        _doc(0, _A, "subsidie cultuur"),
+        _doc(1, _A, "subsidie cultuur"),
+        _doc(2, _B, "vergunning bouw"),
+        _doc(3, _B, "vergunning bouw"),
+        _multichunk_doc(9, [_A, _A, _B], "subsidie cultuur vergunning bouw"),
+    ]
+
+
+def test_document_with_chunks_in_two_clusters_gets_one_topic(audit):
+    first, second = _split_corpus(), _split_corpus()
+    cluster_topics(first, _bundle(no_llm=True), audit, **_SPLIT_PARAMS)
+    cluster_topics(second, _bundle(no_llm=True), audit, **_SPLIT_PARAMS)
+    split = first[-1]
+    # Precies één onderwerp + één deelonderwerp, niet "Overig"...
+    assert split.topic and split.subtopic and split.topic != OVERIG
+    # ...en het is het meerderheidscluster (A, zoals d00), niet B (d02).
+    assert split.topic == first[0].topic and split.subtopic == first[0].subtopic
+    assert split.topic != first[2].topic
+    # Deterministisch: twee runs op identieke embeddings geven dezelfde toewijzing.
+    assert _assign(first) == _assign(second)
+
+
+def test_llm_labelling_applies_label_and_logs_prompt(audit):
+    docs = _corpus()
+    spy = SpyLLM()
+    menu = cluster_topics(docs, _bundle(no_llm=False, llm=spy), audit, **_PARAMS)
+    assert menu["source"] == "llm"  # (b) bron is geen fallback meer
+    assert spy.calls  # minstens één model-call op het LLM-pad
+    # (a) het label belandt op de clusters (Overig blijft Overig, geen LLM-label)
+    assert all(d.topic == "Cultuurbeleid" for d in docs if d.topic != OVERIG)
+    # (c) per gelabeld cluster een audit-event met de exacte prompt, model en locatie
+    evs = [e for e in _events(audit) if e["action"] == "label"]
+    assert evs and all(e["prompt"] and e["model"] == "spy-llm" and e["location"] == "local"
+                       for e in evs)

@@ -53,6 +53,24 @@ the menu does not fragment into singletons. The collapse is recorded in the audi
 `category` becomes `"<onderwerp> / <deelonderwerp>"`; the file type moves to its own `doc_type`
 column. This fixes the misleading-label problem while preserving the data.
 
+### T7 — Chunk→document aggregation: majority vote (the asymmetric failure mode)
+Clustering runs over the **chunk** embeddings from retrieve — the unit that is actually embedded —
+not over one vector per document. A long document can therefore have chunks in more than one
+cluster, which would silently break the T4 promise of exactly one onderwerp/deelonderwerp per
+document. So the chunk→document assignment is an explicit, deterministic rule:
+
+- **Onderwerp** = the onderwerp-cluster where the **majority** of the document's chunks fall.
+- **Deelonderwerp** = the majority deelonderwerp **within that onderwerp** (so nesting always holds).
+- **Tie-break** (equal chunk counts) = the cluster of the document's **medoid chunk** — the chunk
+  whose embedding is nearest the document's mean embedding — and, failing that, the lowest cluster
+  id. The medoid is unique, so ties always resolve; the id fallback is only a formality.
+
+Majority is chosen over "the medoid chunk alone" because it reflects where the bulk of a document's
+content sits — robust for a genuinely multi-topic document — while the medoid serves as a principled
+tie-break. The rule is the canonical answer to "where does this document belong", and `Document.topic`
+/ `Document.subtopic` (mirrored into the inventory `category` and `topics.json`) are its only
+representation — change #4 (viewer) reads those, not the raw chunk clusters.
+
 ## Risks / Trade-offs
 
 - **Cluster-count sensitivity.** The thresholds decide how many onderwerpen appear; too coarse is
@@ -62,9 +80,9 @@ column. This fixes the misleading-label problem while preserving the data.
 - **Label drift.** A label can be slightly off. Low risk: labels are descriptive, not decisive
   (they move no document into or out of the selection), temperature-0, and the prompt is in the
   audit-log.
-- **New dependency (`scipy`).** Standard but heavier; placed in the `sovereign` extra and imported
-  only inside the stage so air-gapped `--no-llm` runs that skip clustering pay nothing at import
-  time.
+- **New dependency (`scipy`).** Standard but heavier; declared as a core dependency (the sovereign
+  building blocks are core in this repo, and `datasketch` already pulls it transitively) and
+  imported only inside the stage so the rest of the skeleton stays light at import time.
 
 ## Migration Plan
 

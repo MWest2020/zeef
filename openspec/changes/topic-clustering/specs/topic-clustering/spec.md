@@ -6,11 +6,21 @@ of onderwerp (coarse) and deelonderwerp (fine, nested within an onderwerp) using
 clustering over the documents' embeddings. The grouping SHALL be reproducible: the clustering
 parameters SHALL be recorded in the run-manifest, and an identical run SHALL produce an identical
 grouping. Each selected document SHALL be assigned exactly one onderwerp and one deelonderwerp.
+When a document's chunks fall into more than one cluster, the system SHALL assign the document by
+majority vote over its chunk memberships — the onderwerp where most of its chunks fall, and the
+majority deelonderwerp within that onderwerp — breaking ties deterministically. This rule SHALL be
+deterministic so the assignment is reproducible.
 
 #### Scenario: Selected documents are grouped reproducibly
 - **WHEN** the topic-clustering stage runs over the selected core
 - **THEN** each selected document is assigned one onderwerp and one deelonderwerp
 - **AND** the clustering parameters used are recorded in the run-manifest
+
+#### Scenario: A document whose chunks span clusters gets one topic by majority
+- **WHEN** a document's chunk embeddings fall into more than one cluster
+- **THEN** the document is assigned the single onderwerp where the majority of its chunks fall, and
+  one deelonderwerp within that onderwerp
+- **AND** the assignment is deterministic across identical runs
 
 #### Scenario: Small clusters collapse into a remainder bucket
 - **WHEN** a cluster contains fewer documents than the configured minimum cluster size
