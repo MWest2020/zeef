@@ -66,6 +66,8 @@ def converge(
     recall_bias: float = typer.Option(0.0, "--recall-bias", help="Verschuif grensgevallen richting insluiten."),
     score_top_k: int | None = typer.Option(None, "--score-top-k", help="Aantal reranked kandidaten dat de LLM scoort (0 = alle)."),
     near_dup: float | None = typer.Option(None, "--near-dup", help="Cosinus-drempel voor near-duplicates (lager = agressiever samenvouwen)."),
+    min_chars: int | None = typer.Option(None, "--min-chars", help="Validity-gate: minimaal aantal leesbare tekens (daaronder leeg-na-OCR, tenzij gelakt)."),
+    redaction_ratio: float | None = typer.Option(None, "--redaction-ratio", help="Validity-gate: laksignaal-drempel waarboven een dun document als gelakt behouden blijft."),
     out: Path | None = typer.Option(None, "--out", help="Uitvoermap voor deze run."),
 ) -> None:
     """Draai de convergentie over `docs` en lever inventory/relations/criteria/audit op."""
@@ -79,12 +81,16 @@ def converge(
         settings.llm_backend = "cloud"
     top_k = settings.llm_score_top_k if score_top_k is None else score_top_k
     near_dup_threshold = settings.near_dup_threshold if near_dup is None else near_dup
+    validity_min_chars = settings.validity_min_chars if min_chars is None else min_chars
+    redaction_threshold = (settings.redaction_ratio_threshold
+                           if redaction_ratio is None else redaction_ratio)
     providers = resolve_providers(profile, no_llm, settings)
     audit = AuditLog(out_dir / "audit.jsonl")
     audit.event("cli", "run-start", inputs={
         "docs": str(docs), "query": query, "profile": profile.value, "no_llm": no_llm,
         "cutoff_mode": mode.value, "cutoff_value": value, "recall_bias": recall_bias,
         "score_top_k": top_k, "near_dup_threshold": near_dup_threshold,
+        "validity_min_chars": validity_min_chars, "redaction_ratio_threshold": redaction_threshold,
         "cutoff_defaulted": cutoff_defaulted, "auth_mode": settings.auth_mode,
     })
     console.print(f"[bold]zeef {__version__}[/] — profiel [cyan]{profile.value}[/]"
@@ -95,6 +101,8 @@ def converge(
     result = run_converge(docs, query, providers, mode, value, out_dir, audit,
                           recall_bias=recall_bias, score_top_k=top_k,
                           near_dup_threshold=near_dup_threshold,
+                          validity_min_chars=validity_min_chars,
+                          redaction_ratio_threshold=redaction_threshold,
                           progress=lambda s: console.print(f"  [dim]→[/] {s}"))
     _summary(result, mode, value)
 
@@ -102,10 +110,11 @@ def converge(
 def _summary(result, mode: CutoffMode, value) -> None:
     counts = result.counts()
     table = Table(title="zeef — samenvatting", show_header=True, header_style="bold")
-    for col in ("documenten", "geselecteerd", "out_of_scope", "undecided"):
+    for col in ("documenten", "geselecteerd", "out_of_scope", "wv. validity", "undecided"):
         table.add_column(col, justify="right")
     table.add_row(str(counts["total"]), str(counts["selected"]),
-                  str(counts["out_of_scope"]), str(counts["undecided"]))
+                  str(counts["out_of_scope"]), str(counts.get("validity_excluded", 0)),
+                  str(counts["undecided"]))
     console.print(table)
     crit = result.criteria
     console.print(f"criteria ([cyan]{crit.source}[/]): {len(crit.items)} — "

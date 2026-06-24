@@ -6,6 +6,43 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-24 — feat: validity-gate — deterministische pre-flight voor de PDF-pivot
+
+**Waarom:** de verkenning draait op een **PDF-only** dataset. De e-mailvormige exclusie-regels
+(forwarded-only, no-reply, thread-heuristiek) vuren daar niet, dus niets beschermde de
+relevantiefase tegen *mechanisch onbruikbare* documenten (mislukte OCR, corrupt/leeg PDF). Een
+corrupt of leeg document in de top-100 is zichtbare ruis die een beoordelaar direct wantrouwt. De
+val: zwaar-**gelakte** documenten bevatten legitiem weinig tekst — een naïeve leeg-drempel zou die
+vals uitsluiten (recall-verlies, slecht live). De gate onderscheidt *onbruikbaar* van *gelakt*.
+
+**Wat (change #1 `pdf-validity-gate`, deterministisch, geen LLM):**
+- `health.py` (nieuw) — `redaction_ratio()` + `health_metadata()`: deterministische extractie-
+  gezondheid (`char_count`/`parse_ok`/`redaction_ratio`) als pure functies over reeds
+  geëxtraheerde tekst. Redactiesignaal = zwartlak-glyphs + lakmarkeringen (`[gelakt]`/`[…]`) +
+  Woo-annotaties (`5.1.2e`, `10.1`, …).
+- `pipeline/validity.py` (nieuw) — `validity_gate(...)`: volgorde `parse_ok` → leeg-na-OCR
+  (redaction-aware) → taal (zacht, sluit nooit uit). Harde faal → `out_of_scope` +
+  `validity:corrupt-pdf` / `validity:empty-after-ocr` + audit-event (id/check/reden). Gelakt-maar-
+  leesbaar → behouden, gemarkeerd, blijft `undecided`. Ontbrekende metadata → default bruikbaar
+  (nooit vals uitsluiten).
+- `loaders/pdf_loader.py` — zet gezondheidsmetadata; corrupte PDF faalt **zacht** (`parse_ok=false`,
+  document blijft bestaan i.p.v. weggegooid). `loaders/email_loader.py` — gezondheid voor
+  uniformiteit (elk geïngest document draagt de velden).
+- `config.py` — `validity_min_chars` (50) + `redaction_ratio_threshold` (0.10), bewust
+  conservatief richting behouden; in het manifest vastgelegd.
+- `pipeline/run.py` — `validity`-stage tussen `ingest` en `relate`, in de timer; `validity_excluded`
+  als aparte telcategorie; manifest-params. `cli.py` — `--min-chars`/`--redaction-ratio` +
+  validity-kolom in de samenvatting.
+
+**Bewust niet in de gate:** exacte/near-duplicaten — die worden al deterministisch afgehandeld in
+relate + scope-filter (`rule_duplicate`); twee code-paden voor duplicaten zou alleen verwarren.
+
+**Tests:** `tests/test_validity.py` (7) — onbruikbaar uitgesloten met juiste reden, gelakt
+behouden+gemarkeerd, bruikbaar ongewijzigd, geen LLM-call, ontbrekende metadata → bruikbaar,
+`redaction_ratio` schoon=0. `openspec validate pdf-validity-gate --strict` ✓. `pytest` 79 passed /
+1 skipped (cloud-auth-collectiefout = ontbrekende optionele `anthropic`-dep in deze worktree-venv,
+los van deze change); `ruff` schoon. Spec: `openspec/changes/pdf-validity-gate/`.
+
 ### 2026-06-23 — feat: abonnement-modus voor de Claude-LLM (OAuth via `ant auth login`)
 
 **Waarom:** de cloud-LLM kon alléén met een betaalde `ANTHROPIC_API_KEY` (pay-per-token). Net als
