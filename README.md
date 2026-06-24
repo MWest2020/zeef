@@ -34,7 +34,8 @@ reproduceerbaar en herleidbaar via een append-only audit-trail.
 | 6–7 | **Embed → Retrieve → Rerank** | Kandidaten t.o.v. de zoekvraag; rerank trimt tot de top-K | nee |
 | 8 | **Score** | LLM scoort de top-K tegen de criteria: relevantiescore + motivatie per document | **LLM (eind)** |
 | 9 | **Select** | Instelbare cutoff (`--top-n` / `--threshold` / `--target`), recall-gericht | nee |
-| 10 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `run-manifest.json`, `audit.jsonl` | nee |
+| 10 | **Topics** | Deterministische clustering → onderwerp/deelonderwerp-menu; LLM labelt alleen | label-only |
+| 11 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `topics.json`, `run-manifest.json`, `audit.jsonl` | nee |
 
 **Twee LLM-momenten, de rest deterministisch.** De regel: LLM alleen bij een oordeel onder
 taalkundige ambiguïteit zónder mechanische grondwaarheid, én waar een motivatie de
@@ -83,9 +84,10 @@ zeef converge ./docs --query "..." --profile sovereign --no-llm --target 100
 `--score-top-k N` begrenst hoeveel reranked kandidaten de LLM-scoring beoordeelt (`0` = alle).
 
 Levert op (in een verse run-map per aanroep): de geselecteerde set, `inventory.xlsx` (id, score,
-categorie, samenvatting, reden, **motivatie**), `relations.json` (relatiegraaf), `criteria.json`
-(de gearticuleerde relevantiecriteria), `run-manifest.json` (run-parameters + per-stage runtimes)
-en `audit.jsonl` (volledige audit-log).
+categorie = onderwerp/deelonderwerp, doc_type, samenvatting, reden, **motivatie**),
+`relations.json` (relatiegraaf), `criteria.json` (de gearticuleerde relevantiecriteria),
+`topics.json` (het onderwerp/deelonderwerp-keuzemenu voor de verzoeker),
+`run-manifest.json` (run-parameters + per-stage runtimes) en `audit.jsonl` (volledige audit-log).
 
 ## Status
 

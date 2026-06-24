@@ -20,7 +20,14 @@ def _doc(doc_id, **kw):
     d.decision = "selected"
     d.decision_reason = kw.get("reason", "top-n")
     d.rationale = kw.get("rationale", "")
+    d.topic = kw.get("topic", "")
+    d.subtopic = kw.get("subtopic", "")
     return d
+
+
+def _cell(row, name):
+    """Lees een cel op kolomnaam, niet -index (de category/doc_type-rebind wijzigt de volgorde)."""
+    return row[INVENTORY_COLUMNS.index(name)]
 
 
 def test_inventory_has_required_columns(tmp_path):
@@ -29,9 +36,17 @@ def test_inventory_has_required_columns(tmp_path):
     ws = load_workbook(path).active
     assert tuple(c.value for c in ws[1]) == INVENTORY_COLUMNS
     row = [c.value for c in ws[2]]
-    assert row[0] == "a" and row[1] == 0.91 and row[4] == "top-n=50"
-    motivatie_idx = INVENTORY_COLUMNS.index("motivatie")
-    assert row[motivatie_idx] == "scoort hoog: publicatieclausule"
+    assert _cell(row, "id") == "a" and _cell(row, "score") == 0.91
+    assert _cell(row, "reason") == "top-n=50"
+    assert _cell(row, "motivatie") == "scoort hoog: publicatieclausule"
+
+
+def test_category_is_topic_and_doc_type_kept_separate(tmp_path):
+    docs = [_doc("a", doc_type="pdf_digital", topic="Subsidie cultuur", subtopic="Begroting 2026")]
+    ws = load_workbook(write_inventory(docs, tmp_path / "inv.xlsx")).active
+    row = [c.value for c in ws[2]]
+    assert _cell(row, "category") == "Subsidie cultuur / Begroting 2026"
+    assert _cell(row, "doc_type") == "pdf_digital"
 
 
 def test_no_llm_leaves_motivatie_empty(tmp_path):

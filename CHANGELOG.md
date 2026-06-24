@@ -77,6 +77,73 @@ behouden). `openspec validate pdf-validity-gate --strict` ✓. `pytest` 81 passe
 1 skipped (cloud-auth-collectiefout = ontbrekende optionele `anthropic`-dep in deze worktree-venv,
 los van deze change); `ruff` schoon. Spec: `openspec/changes/pdf-validity-gate/`.
 
+### 2026-06-24 — fix: review-bevindingen op topic-clustering (run-crash + schaal)
+
+**Waarom:** review (`/review` + security) op `change/topic-clustering` legde twee acteerbare
+code-punten bloot vóór de merge.
+
+**Wat (`pipeline/topics.py`, alleen deze change):**
+- **🔴 nul-vector-guard (run-crash).** `_chunk_vectors` filterde nul-/niet-eindige chunk-embeddings
+  niet; cosine is daar ongedefinieerd en `scipy.linkage` gooit hard (`ValueError: condensed distance
+  matrix must contain only finite values`). Dat raakt direct de gelakt-maar-behouden documenten uit
+  change #1 (dunne tekst). Nu gefilterd; houdt een document geen bruikbare chunk over, dan gaat het
+  deterministisch naar **"Overig"** i.p.v. de run laat te laten crashen. Test:
+  `test_empty_chunk_document_routes_to_overig_without_crashing`.
+- **🟠 `linkage` één keer + chunk-cap (T8).** `_flat_clusters` werd twee keer aangeroepen → `pdist`
+  dubbel berekend. Nu `_two_level`: één `linkage`, twee `fcluster`-cuts — halveert de kost en maakt
+  de nesting bewijsbaar (zelfde dendrogram). De O(n²)-afstandsmatrix wordt begrensd via een
+  **deterministische chunk-cap** (`max_chunks_per_doc`, default 40): gelijkmatige bemonstering over
+  het document (geen "eerste/langste N", die de meerderheid zou biasen), zodat de topic-verdeling —
+  en dus de T7-meerderheidsregel — behouden blijft. De cap staat in het run-manifest (geen stille
+  truncatie). Besluit T8 in `design.md`. Test: `test_chunk_cap_preserves_majority`.
+
+**Bevestigd, niet gewijzigd:** `_chunk_vectors` valt onder `--no-llm` terug op `embed.embed(...)` als
+embeddings ontbreken — dat is een lokale embedding, **geen** LLM-call (de no-call-test blijft groen);
+bewust en gedocumenteerd in de docstring.
+
+**Tests:** `pytest` **86 passed / 1 skipped** (+2). Expliciet groen: reproduceerbaarheid, no-call,
+T7-meerderheid, nul-vector→Overig, cap-behoudt-meerderheid. `openspec validate topic-clustering
+--strict` ✓; `ruff` schoon; `topics.py` 177 regels (≤200).
+
+### 2026-06-24 — feat: topic-clustering — onderwerp/deelonderwerp-menu voor de verzoeker
+
+**Waarom:** een hoofdcriterium van de verkenning is het opdelen van de kern in deelonderwerpen, als
+keuzemenu voor de verzoeker. Dat ontbrak, en de `category`-kolom toonde misleidend het *bestandstype*
+(`pdf_digital`) i.p.v. een thematische categorie.
+
+**Wat (change #2 `topic-clustering`):**
+- `pipeline/topics.py` (nieuw) — deterministische agglomeratieve clustering (cosine, average
+  linkage) over de **chunk**-embeddings uit retrieve, geknipt op twee hoogtes → onderwerp (grof) en
+  deelonderwerp (fijn, genest). "Overig"-collapse onder `min_cluster_size`. `scipy`/`numpy` lazy
+  binnen de stage. **Aggregatieregel (design T7):** een document met chunks in meerdere clusters
+  wordt toegewezen via **meerderheid** van zijn chunk-clusters; gelijkspel → de medoid-chunk, dan
+  het kleinste id — zodat de "precies één onderwerp/deelonderwerp per document"-belofte hard is.
+- `pipeline/topic_labels.py` (nieuw) — labelling, afgesplitst (≤200-regelgrens). Onder `--no-llm`:
+  TF-IDF-fallbacklabels (distinctieve termen), **geen model-call**. Met LLM: één call per cluster op
+  representatieve snippets (medoid + naaste leden) → kort Nederlands label, prompt/model/locatie
+  gelogd. (Kwaliteits-pass op het demo-model is handmatig, niet in de tests.)
+- `export.py` — inventory `category` herbestemd naar **onderwerp / deelonderwerp**; bestandstype
+  behouden in eigen `doc_type`-kolom; `write_topics` → `topics.json` (het keuzemenu).
+- `models.py` — `Document.topic`/`subtopic` (labels, geen identity).
+- `config.py` — `onderwerp_distance`/`deelonderwerp_distance`/`min_cluster_size` (eigen blok,
+  conservatief, in het manifest). `run.py` (additief) — topics-stage ná `select`, in de timer;
+  clusterparameters in manifest-params; `topics.json` in de artefactenlijst. `cli.py` (additief) —
+  samenvatting toont onderwerp/deelonderwerp-aantal.
+- `pyproject`/`uv.lock` — `scipy` als directe dep (was transitief via `datasketch`).
+
+**Canoniek topic-veld:** `Document.topic`/`subtopic` (gespiegeld in inventory `category` en
+`topics.json`) zijn de enige representatie van de toewijzing — change #4 (viewer) leest die, niet de
+ruwe chunk-clusters.
+
+**Tests:** `tests/test_topics.py` — tweelaagse groepering + "Overig"-collapse; **reproduceerbaarheid**
+(identieke embeddings/parameters → identieke toewijzing, params in het manifest, twee runs →
+identieke `topics.json`); de **asymmetrische faalmodus** expliciet (een document met chunks over twee
+clusters krijgt via meerderheid precies één onderwerp/deelonderwerp, deterministisch); **`--no-llm`
+maakt geen enkele model-call** (assert) met fallbacklabels; en de **LLM-label-branch** echt getest
+(label landt op het cluster, bron niet meer fallback, per cluster een audit-event met prompt/model/
+locatie). `test_export.py` op kolomnaam i.p.v. -index. `openspec validate topic-clustering --strict`
+✓. `pytest` **84 passed / 1 skipped**; `ruff` schoon; ≤200-regel ok.
+
 ### 2026-06-23 — feat: abonnement-modus voor de Claude-LLM (OAuth via `ant auth login`)
 
 **Waarom:** de cloud-LLM kon alléén met een betaalde `ANTHROPIC_API_KEY` (pay-per-token). Net als

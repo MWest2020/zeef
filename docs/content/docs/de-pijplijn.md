@@ -20,7 +20,8 @@ houdt de hele tussenliggende keten deterministisch.
 | 6 | **Rerank** | Deterministische precisiepas; bepaalt welke top-K naar de LLM-scoring gaat. | nee |
 | 7 | **Score** | LLM scoort de top-K tegen de criteria: relevantiescore **én** motivatie per document. | **LLM (eind)** |
 | 8 | **Select** | Instelbare cutoff (`--top-n` / `--threshold` / `--target`), recall-gericht. | nee |
-| 9 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `run-manifest.json`, `audit.jsonl`. | nee |
+| 9 | **Topics** | Deterministische clustering van de kern → onderwerp/deelonderwerp-menu; LLM labelt alleen (TF-IDF-fallback onder `--no-llm`). | label-only |
+| 10 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `topics.json`, `run-manifest.json`, `audit.jsonl`. | nee |
 
 {{< callout type="info" >}}
   **De regel voor wel/niet LLM.** Een LLM komt er alleen aan te pas bij een oordeel onder
@@ -102,8 +103,14 @@ richting insluiting. De gekozen modus en parameters worden gelogd.
 
 zeef levert op:
 
-- **`inventory.xlsx`** — id, score, categorie, samenvatting, reden, **motivatie**.
+- **`inventory.xlsx`** — id, score, **categorie** (= onderwerp/deelonderwerp), **doc_type** (bestandstype, eigen kolom), samenvatting, reden, **motivatie**.
 - **`relations.json`** — de relatiegraaf.
 - **`criteria.json`** — de gearticuleerde relevantiecriteria (de inspecteerbare definitie).
-- **`run-manifest.json`** — run-parameters (zoekvraag, providers/model, cutoff) en de vastgelegde per-stage runtimes.
+- **`topics.json`** — het onderwerp → deelonderwerp → document-ids menu (het keuzemenu voor de verzoeker), met labels.
+- **`run-manifest.json`** — run-parameters (zoekvraag, providers/model, cutoff, clusterdrempels) en de vastgelegde per-stage runtimes.
 - **`audit.jsonl`** — de volledige [audit-trail](../audit-trail).
+
+Het **canonieke onderwerp-veld** is `Document.topic`/`subtopic` — gespiegeld in de inventory-kolom
+`categorie` en in `topics.json`. Een document met chunks in meerdere clusters wordt via
+**meerderheid** aan precies één onderwerp/deelonderwerp toegewezen (deterministische tie-break op de
+medoid-chunk; zie design T7). Lees die velden, niet de ruwe chunk-clusters.

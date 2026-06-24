@@ -16,7 +16,16 @@ from openpyxl import Workbook
 
 from zeef.models import Criteria, Document
 
-INVENTORY_COLUMNS = ("id", "score", "category", "summary", "reason", "motivatie")
+# `category` draagt nu het onderwerp/deelonderwerp (topic-clustering), niet het bestandstype;
+# dat laatste blijft behouden in een eigen `doc_type`-kolom zodat geen informatie verloren gaat.
+INVENTORY_COLUMNS = ("id", "score", "category", "doc_type", "summary", "reason", "motivatie")
+
+
+def _category(doc: Document) -> str:
+    """Onderwerp / deelonderwerp als één cel; valt terug op alleen het onderwerp (of leeg)."""
+    if doc.subtopic and doc.subtopic != doc.topic:
+        return f"{doc.topic} / {doc.subtopic}"
+    return doc.topic
 
 
 def write_inventory(selected: list[Document], path: Path) -> Path:
@@ -30,12 +39,20 @@ def write_inventory(selected: list[Document], path: Path) -> Path:
         ws.append([
             doc.id,
             round(doc.scores.get("final", 0.0), 6),
+            _category(doc),
             doc.doc_type,
             str(doc.metadata.get("summary", "")),
             doc.decision_reason,
             doc.rationale,
         ])
     wb.save(path)
+    return path
+
+
+def write_topics(topics: dict, path: Path) -> Path:
+    """Schrijf het onderwerp/deelonderwerp-menu naar `topics.json` (het keuzemenu voor de verzoeker)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(topics, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
 
