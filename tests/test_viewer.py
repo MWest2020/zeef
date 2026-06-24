@@ -8,7 +8,7 @@ van semantisch; (d) een gelakt document toont de status uit `REDACTION_META_KEY`
 
 import json
 
-from zeef.export import build_report_data, write_excluded, write_report_html
+from zeef.export import _REPORT_TEMPLATE, build_report_data, write_excluded, write_report_html
 from zeef.models import Document
 from zeef.pipeline.validity import REDACTION_META_KEY, REDACTION_NOTE
 
@@ -76,6 +76,17 @@ def test_excluded_grouped_by_reason_validity_vs_semantic(tmp_path):
     assert payload["count"] == 2 and payload["validity"] == 1 and payload["semantic"] == 1
     kinds = {e["id"]: e["kind"] for e in payload["excluded"]}
     assert kinds["x1"] == "validity" and kinds["x2"] == "semantic"
+
+
+def test_render_js_uses_only_safe_dom_sinks():
+    # De render-weg (niet alleen de injectie) moet onvertrouwde data via de DOM-tekstweg
+    # (textContent/createElement) in de DOM zetten — nooit via innerHTML/insertAdjacentHTML/
+    # document.write, die de payload als HTML zouden uitvoeren ondanks de JSON-escaping.
+    # Statische guard op het template tegen een latere regressie.
+    template = _REPORT_TEMPLATE.read_text(encoding="utf-8")
+    for sink in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "insertAdjacentText"):
+        assert sink not in template, f"onveilige DOM-sink in template: {sink}"
+    assert "textContent" in template and "createElement" in template
 
 
 def test_redaction_status_from_canonical_key(tmp_path):
