@@ -49,6 +49,18 @@ def test_three_artifacts_present(corpus, tmp_path, no_network):
     assert result.counts()["selected"] > 0
 
 
+def test_no_summary_column_in_inventory_under_no_llm(corpus, tmp_path, no_network):
+    # Legt de bedrading vast: run.py geeft onder --no-llm `include_summary=False` door, dus de
+    # geëxporteerde inventory heeft géén summary-kolom (geen lege kolom met header).
+    from openpyxl import load_workbook
+
+    _run(corpus, tmp_path)
+    ws = load_workbook(tmp_path / "inventory.xlsx").active
+    header = [c.value for c in ws[1]]
+    assert "summary" not in header
+    assert "category" in header and "motivatie" in header
+
+
 def test_run_manifest_records_stage_runtimes(corpus, tmp_path, no_network):
     result, _ = _run(corpus, tmp_path)
     path = tmp_path / "run-manifest.json"

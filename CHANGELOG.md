@@ -6,6 +6,28 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-24 — fix: review-bevindingen op output-hygiene (formule-injectie + bedrading)
+
+**Waarom:** review op `change/output-hygiene` leverde één security-fix en twee kleinere punten op.
+
+**Wat (`export.py`, alleen deze change):**
+- **🟠 Excel/CSV-formule-injectie (CWE-1236).** `write_inventory` schreef tekstcellen rauw; een cel
+  die met `=`, `+`, `-`, `@` (of tab/CR) begint, voert Excel/LibreOffice uit bij openen — en de
+  inventory wordt door een ambtenaar in Excel geopend, met kolommen uit onvertrouwde LLM-bron. Nieuwe
+  `_formula_safe`-helper prefixt zulke tekstcellen met een apostrof (tekst i.p.v. formule).
+  **Dekt expliciet álle tekstkolommen**, niet alleen de nieuwe `summary`: ook de **bestaande**
+  `category` (change #2), `reason` en `motivatie` (change #1/#2) worden nu geneutraliseerd — vandaar
+  dat een output-hygiene-change ouder kolomgedrag raakt. Test leest de geschreven celwaarde terug
+  (`'=…` geprefixt; onschuldige cel ongewijzigd).
+- **e2e-assert op de summary-bedrading.** `include_summary = not no_llm` was alleen op functieniveau
+  getest; nu ook een volledige `--no-llm`-run die bevestigt dat de geëxporteerde `inventory.xlsx`
+  géén `summary`-kolom heeft (legt de bedrading vast tegen een stille refactor).
+- **Docs:** de-pijplijn benoemt nu expliciet dat de samenvatting de **opening** (~2000 tekens) van
+  het document dekt, niet het volledige document.
+
+**Tests:** `pytest` mét cloud / zónder cloud beide groen (zónder collecteert nog steeds schoon).
+`openspec validate output-hygiene --strict` ✓; `ruff` schoon.
+
 ### 2026-06-24 — feat: output-hygiene — samenvatting, overlaps-with, test-collectie zonder cloud-dep
 
 **Waarom:** drie restpunten die een slordige indruk geven bij een auditor: een `summary`-kolom die

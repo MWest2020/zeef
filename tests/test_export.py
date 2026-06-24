@@ -55,6 +55,17 @@ def test_no_llm_leaves_motivatie_empty(tmp_path):
     assert [c.value for c in ws[2]][motivatie_idx] in ("", None)
 
 
+def test_formula_injection_cell_is_prefixed(tmp_path):
+    # Een cel die met '=' begint mag niet als formule worden weggeschreven (CWE-1236): apostrof-prefix.
+    # Een onschuldige cel blijft ongewijzigd — bewijst dat de helper alleen prefixt wat het moet.
+    docs = [_doc("a", rationale="=cmd|' /C calc'!A0"), _doc("b", rationale="gewone motivatie")]
+    ws = load_workbook(write_inventory(docs, tmp_path / "inv.xlsx")).active
+    rows = [[c.value for c in r] for r in ws.iter_rows(min_row=2)]
+    m = INVENTORY_COLUMNS.index("motivatie")
+    assert rows[0][m] == "'=cmd|' /C calc'!A0"  # teruggelezen celwaarde: geprefixt, geen formule
+    assert rows[1][m] == "gewone motivatie"      # onschuldig → ongewijzigd
+
+
 def test_no_summary_column_when_excluded(tmp_path):
     # Onder --no-llm wordt de summary-kolom wéggelaten (geen lege kolom), de rest blijft.
     ws = load_workbook(

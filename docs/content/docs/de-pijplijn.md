@@ -104,7 +104,7 @@ richting insluiting. De gekozen modus en parameters worden gelogd.
 
 zeef levert op:
 
-- **`inventory.xlsx`** — id, score, **categorie** (= onderwerp/deelonderwerp), **doc_type** (bestandstype, eigen kolom), **samenvatting** (≤100 woorden — alleen mét LLM; onder `--no-llm` vervalt de kolom), reden, **motivatie**. Samenvatting (wát het document zegt) staat los van motivatie (waaróm het scoort).
+- **`inventory.xlsx`** — id, score, **categorie** (= onderwerp/deelonderwerp), **doc_type** (bestandstype, eigen kolom), **samenvatting** (≤100 woorden — alleen mét LLM; onder `--no-llm` vervalt de kolom), reden, **motivatie**. Samenvatting (wát het document zegt) staat los van motivatie (waaróm het scoort). De samenvatting vat de **opening** van het document samen (de eerste ~2000 tekens), niet het volledige document.
 - **`relations.json`** — de relatiegraaf, inclusief `overlaps-with` voor partiële tekstoverlap (cosine in `[overlap_threshold, near_dup_threshold)`).
 - **`criteria.json`** — de gearticuleerde relevantiecriteria (de inspecteerbare definitie).
 - **`topics.json`** — het onderwerp → deelonderwerp → document-ids menu (het keuzemenu voor de verzoeker), met labels.
