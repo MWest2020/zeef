@@ -37,9 +37,13 @@ vals uitsluiten (recall-verlies, slecht live). De gate onderscheidt *onbruikbaar
 **Bewust niet in de gate:** exacte/near-duplicaten — die worden al deterministisch afgehandeld in
 relate + scope-filter (`rule_duplicate`); twee code-paden voor duplicaten zou alleen verwarren.
 
-**Tests:** `tests/test_validity.py` (7) — onbruikbaar uitgesloten met juiste reden, gelakt
+**Tests:** `tests/test_validity.py` (9) — onbruikbaar uitgesloten met juiste reden, gelakt
 behouden+gemarkeerd, bruikbaar ongewijzigd, geen LLM-call, ontbrekende metadata → bruikbaar,
-`redaction_ratio` schoon=0. `openspec validate pdf-validity-gate --strict` ✓. `pytest` 79 passed /
+`redaction_ratio` schoon=0. Plus de asymmetrische faalmodus expliciet: een zwaar gelakt document
+onder `min_chars` overleeft de gate (undecided, gemarkeerd, eligible voor retrieve/score, níét in
+de validity-telling), en een grens-test die bij gelijke tekstlengte bewijst dat alléén de
+`redaction_ratio` het onderscheid maakt (net onder de drempel → `empty-after-ocr`; net erboven →
+behouden). `openspec validate pdf-validity-gate --strict` ✓. `pytest` 81 passed /
 1 skipped (cloud-auth-collectiefout = ontbrekende optionele `anthropic`-dep in deze worktree-venv,
 los van deze change); `ruff` schoon. Spec: `openspec/changes/pdf-validity-gate/`.
 
