@@ -25,7 +25,11 @@ from zeef.pipeline.retrieve import retrieve
 from zeef.pipeline.score import score
 from zeef.pipeline.scope_filter import scope_filter
 from zeef.pipeline.select import select
+from zeef.pipeline.validity import validity_gate
 from zeef.profiles import ProviderBundle
+
+DEFAULT_VALIDITY_MIN_CHARS = 50
+DEFAULT_REDACTION_RATIO_THRESHOLD = 0.10
 
 
 @dataclass(frozen=True)
@@ -42,8 +46,12 @@ class RunResult:
         sel = sum(1 for d in self.documents if d.decision == "selected")
         oos = sum(1 for d in self.documents if d.decision == "out_of_scope")
         und = sum(1 for d in self.documents if d.decision == "undecided")
+        # Validity-uitsluitingen zijn een aparte, rapporteerbare categorie (validity-gate-spec):
+        # mechanisch onbruikbaar, los van de semantische scope-filter-uitsluitingen.
+        val = sum(1 for d in self.documents if d.decision == "out_of_scope"
+                  and d.decision_reason.startswith("validity:"))
         return {"total": len(self.documents), "selected": sel,
-                "out_of_scope": oos, "undecided": und}
+                "out_of_scope": oos, "undecided": und, "validity_excluded": val}
 
 
 def run_converge(
@@ -58,6 +66,8 @@ def run_converge(
     recall_bias: float = 0.0,
     score_top_k: int = 0,
     near_dup_threshold: float = DEFAULT_NEAR_DUP_THRESHOLD,
+    validity_min_chars: int = DEFAULT_VALIDITY_MIN_CHARS,
+    redaction_ratio_threshold: float = DEFAULT_REDACTION_RATIO_THRESHOLD,
     progress=None,
 ) -> RunResult:
     """Draai de volledige convergentie en schrijf de artefacten naar `out_dir`."""
@@ -80,6 +90,9 @@ def run_converge(
 
     criteria = run_stage("criteria", lambda: articulate_criteria(query, providers, audit))
     docs = run_stage("ingest", lambda: ingest(docs_dir, audit))
+    run_stage("validity", lambda: validity_gate(
+        docs, audit, min_chars=validity_min_chars,
+        redaction_ratio_threshold=redaction_ratio_threshold))
     run_stage("relate", lambda: relate(
         docs, providers.embed, audit, near_dup_threshold=near_dup_threshold))
     run_stage("scope-filter", lambda: scope_filter(docs, providers, audit, query))
@@ -124,6 +137,8 @@ def run_converge(
             "recall_bias": recall_bias,
             "score_top_k": score_top_k,
             "near_dup_threshold": near_dup_threshold,
+            "validity_min_chars": validity_min_chars,
+            "redaction_ratio_threshold": redaction_ratio_threshold,
         },
         "counts": result.counts(),
         "runtime_ms": {"total": total_ms, "stages": timings},

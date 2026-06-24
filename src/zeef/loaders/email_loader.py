@@ -14,6 +14,7 @@ from email.message import EmailMessage
 from email.parser import BytesParser
 from pathlib import Path
 
+from zeef.health import health_metadata
 from zeef.ids import content_id
 from zeef.models import Document
 from zeef.normalize import normalize_text
@@ -38,6 +39,7 @@ class EmailLoader:
         metadata = _extract_headers(msg)
         body = _extract_body(msg)
         text = normalize_text(body)
+        metadata.update(health_metadata(text, True))
         email_doc = Document(
             id=content_id(text, str(path)),
             source_path=str(path),
@@ -67,6 +69,7 @@ class EmailLoader:
             "Subject": m.subject or "",
             "Date": m.date or "",
         }
+        metadata.update(health_metadata(text, True))  # pragma: no cover
         return [Document(  # pragma: no cover
             id=content_id(text, str(path)), source_path=str(path),
             doc_type="email", metadata=metadata, text=text,
@@ -102,12 +105,14 @@ def _attachment_document(part: EmailMessage, path: Path, parent_id: str) -> Docu
         payload = part.get_content()
         text = normalize_text(payload) if isinstance(payload, str) else ""
     att_path = f"{path}#att:{filename}"
+    metadata = {"filename": filename, "content_type": part.get_content_type(),
+                "attachment_of": parent_id}
+    metadata.update(health_metadata(text, True))
     return Document(
         id=content_id(text or filename, att_path),
         source_path=att_path,
         doc_type=_doc_type_for(filename),
-        metadata={"filename": filename, "content_type": part.get_content_type(),
-                  "attachment_of": parent_id},
+        metadata=metadata,
         text=text,
     )
 

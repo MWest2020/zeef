@@ -59,6 +59,15 @@ class Settings(BaseSettings):
     # Hoeveel reranked kandidaten de LLM-relevantiescoring beoordeelt (0 = alle). Bovengrens op
     # de LLM-kosten; ruim boven het ~100-target zodat de recall-trechter niet knelt.
     llm_score_top_k: int = 250
+    # --- validity-gate (deterministische pre-flight; geen LLM) ---
+    # Minimaal aantal leesbare tekens; daaronder geldt een document als leeg-na-OCR en wordt het
+    # uitgesloten — tenzij er laksignaal is (zie hieronder). Bewust conservatief (laag): liever
+    # behouden dan een dun-maar-valide document vals uitsluiten. Afstembaar op de echte dataset.
+    validity_min_chars: int = 50
+    # Aandeel redactiesignaal (zwartlak/lakmarkeringen/Woo-annotaties) waarboven een document
+    # ónder de tekstdrempel toch behouden blijft als 'vermoedelijk gelakt' i.p.v. leeg. Lager =
+    # behoud meer (recall-veiliger). Default conservatief richting behouden.
+    redaction_ratio_threshold: float = 0.10
 
 
 class NullLLM:

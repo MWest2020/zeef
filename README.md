@@ -27,13 +27,14 @@ reproduceerbaar en herleidbaar via een append-only audit-trail.
 | # | Stage | Wat | LLM? |
 |---|-------|-----|------|
 | 1 | **Criteria** | Zoekvraag → expliciete, benoemde relevantiecriteria (`criteria.json`) | **LLM (begin)** |
-| 2 | **Ingest & normalize** | Format-robuuste loaders (`.eml`/`.msg`, digitale PDF) → canoniek `Document` | nee |
-| 3 | **Relate** | Mailthreads uit headers, near-duplicates (MinHash + cosine) | nee |
-| 4 | **Scope-filter** | Regels eerst, LLM alleen voor twijfelgevallen — elke uitsluiting met reden | regels + LLM-randgeval |
-| 5–6 | **Embed → Retrieve → Rerank** | Kandidaten t.o.v. de zoekvraag; rerank trimt tot de top-K | nee |
-| 7 | **Score** | LLM scoort de top-K tegen de criteria: relevantiescore + motivatie per document | **LLM (eind)** |
-| 8 | **Select** | Instelbare cutoff (`--top-n` / `--threshold` / `--target`), recall-gericht | nee |
-| 9 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `run-manifest.json`, `audit.jsonl` | nee |
+| 2 | **Ingest & normalize** | Format-robuuste loaders (`.eml`/`.msg`, digitale PDF) → canoniek `Document`, mét extractie-gezondheid (`char_count`/`parse_ok`/`redaction_ratio`) | nee |
+| 3 | **Validity-gate** | Deterministische pre-flight: sluit mechanisch-onbruikbare documenten uit (onleesbaar, leeg-na-OCR) met `validity:`-reden; behoudt gelakt-maar-leesbare | nee |
+| 4 | **Relate** | Mailthreads uit headers, near-duplicates (MinHash + cosine) | nee |
+| 5 | **Scope-filter** | Regels eerst, LLM alleen voor twijfelgevallen — elke uitsluiting met reden | regels + LLM-randgeval |
+| 6–7 | **Embed → Retrieve → Rerank** | Kandidaten t.o.v. de zoekvraag; rerank trimt tot de top-K | nee |
+| 8 | **Score** | LLM scoort de top-K tegen de criteria: relevantiescore + motivatie per document | **LLM (eind)** |
+| 9 | **Select** | Instelbare cutoff (`--top-n` / `--threshold` / `--target`), recall-gericht | nee |
+| 10 | **Export** | `inventory.xlsx`, `relations.json`, `criteria.json`, `run-manifest.json`, `audit.jsonl` | nee |
 
 **Twee LLM-momenten, de rest deterministisch.** De regel: LLM alleen bij een oordeel onder
 taalkundige ambiguïteit zónder mechanische grondwaarheid, én waar een motivatie de
@@ -89,8 +90,9 @@ en `audit.jsonl` (volledige audit-log).
 ## Status
 
 Eerste werkende CLI-MVP (`converge-mvp`) **geïmplementeerd en getest**. De volledige pijplijn
-draait air-gapped: ingest (`.eml`/`.msg`, digitale PDF) → relate (mailthreads + duplicaten) →
-scope-filter (regels eerst, LLM-fallback) → embed/retrieve/rerank → select → export. De
+draait air-gapped: ingest (`.eml`/`.msg`, digitale PDF) → validity-gate (mechanisch-onbruikbaar
+eruit, gelakt behouden) → relate (mailthreads + duplicaten) → scope-filter (regels eerst,
+LLM-fallback) → embed/retrieve/rerank → select → export. De
 specificatie staat in `openspec/changes/converge-mvp/` (proposal, design, 10 capability-specs,
 tasks).
 
