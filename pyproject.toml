@@ -20,6 +20,7 @@ dependencies = [
     "openpyxl>=3.1",
     "pypdf>=4.2",            # digital PDF text extraction
     "datasketch>=1.6",       # MinHash near-duplicate candidates (pulls numpy/scipy)
+    "scipy>=1.11",           # hierarchical topic clustering (sovereign building block, lazy-imported in the topics stage)
 ]
 
 [project.optional-dependencies]

@@ -15,7 +15,13 @@ from typing import Any
 
 from zeef.audit import AuditLog
 from zeef.config import CutoffMode
-from zeef.export import write_criteria, write_inventory, write_manifest, write_relations
+from zeef.export import (
+    write_criteria,
+    write_inventory,
+    write_manifest,
+    write_relations,
+    write_topics,
+)
 from zeef.models import Criteria, Document
 from zeef.pipeline.criteria import articulate_criteria
 from zeef.pipeline.ingest import ingest
@@ -25,11 +31,16 @@ from zeef.pipeline.retrieve import retrieve
 from zeef.pipeline.score import score
 from zeef.pipeline.scope_filter import scope_filter
 from zeef.pipeline.select import select
+from zeef.pipeline.topics import cluster_topics
 from zeef.pipeline.validity import validity_gate
 from zeef.profiles import ProviderBundle
 
 DEFAULT_VALIDITY_MIN_CHARS = 50
 DEFAULT_REDACTION_RATIO_THRESHOLD = 0.10
+# Default clustering-drempels voor directe aanroepers/tests; de CLI geeft `Settings`-waarden door.
+DEFAULT_ONDERWERP_DISTANCE = 0.8
+DEFAULT_DEELONDERWERP_DISTANCE = 0.5
+DEFAULT_MIN_CLUSTER_SIZE = 3
 
 
 @dataclass(frozen=True)
@@ -68,6 +79,9 @@ def run_converge(
     near_dup_threshold: float = DEFAULT_NEAR_DUP_THRESHOLD,
     validity_min_chars: int = DEFAULT_VALIDITY_MIN_CHARS,
     redaction_ratio_threshold: float = DEFAULT_REDACTION_RATIO_THRESHOLD,
+    onderwerp_distance: float = DEFAULT_ONDERWERP_DISTANCE,
+    deelonderwerp_distance: float = DEFAULT_DEELONDERWERP_DISTANCE,
+    min_cluster_size: int = DEFAULT_MIN_CLUSTER_SIZE,
     progress=None,
 ) -> RunResult:
     """Draai de volledige convergentie en schrijf de artefacten naar `out_dir`."""
@@ -102,11 +116,17 @@ def run_converge(
         ranked, criteria, providers, audit, query, top_k=score_top_k))
     selected = run_stage("select", lambda: select(
         scored, mode, value, audit, recall_bias=recall_bias))
+    topics = run_stage("topics", lambda: cluster_topics(
+        selected, providers, audit,
+        onderwerp_distance=onderwerp_distance,
+        deelonderwerp_distance=deelonderwerp_distance,
+        min_cluster_size=min_cluster_size))
 
     def _export() -> None:
         write_inventory(selected, out_dir / "inventory.xlsx")
         write_relations(docs, out_dir / "relations.json")
         write_criteria(criteria, out_dir / "criteria.json")
+        write_topics(topics, out_dir / "topics.json")
 
     run_stage("export", _export)
     total_ms = round((time.perf_counter() - wall_started) * 1000, 1)
@@ -139,6 +159,9 @@ def run_converge(
             "near_dup_threshold": near_dup_threshold,
             "validity_min_chars": validity_min_chars,
             "redaction_ratio_threshold": redaction_ratio_threshold,
+            "onderwerp_distance": onderwerp_distance,
+            "deelonderwerp_distance": deelonderwerp_distance,
+            "min_cluster_size": min_cluster_size,
         },
         "counts": result.counts(),
         "runtime_ms": {"total": total_ms, "stages": timings},
@@ -147,7 +170,7 @@ def run_converge(
     audit.event("export", "artifacts-written", inputs={
         "out_dir": str(out_dir),
         "files": ["inventory.xlsx", "relations.json", "criteria.json",
-                  "run-manifest.json", "audit.jsonl"],
+                  "topics.json", "run-manifest.json", "audit.jsonl"],
     })
     return RunResult(documents=docs, selected=selected, out_dir=out_dir,
                      criteria=criteria, manifest=manifest)

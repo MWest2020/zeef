@@ -103,6 +103,9 @@ def converge(
                           near_dup_threshold=near_dup_threshold,
                           validity_min_chars=validity_min_chars,
                           redaction_ratio_threshold=redaction_threshold,
+                          onderwerp_distance=settings.onderwerp_distance,
+                          deelonderwerp_distance=settings.deelonderwerp_distance,
+                          min_cluster_size=settings.min_cluster_size,
                           progress=lambda s: console.print(f"  [dim]→[/] {s}"))
     _summary(result, mode, value)
 
@@ -120,12 +123,18 @@ def _summary(result, mode: CutoffMode, value) -> None:
     console.print(f"criteria ([cyan]{crit.source}[/]): {len(crit.items)} — "
                   + ", ".join(c.label for c in crit.items[:6]))
     console.print(f"cutoff: [green]{mode.value}={value}[/]")
+    onderwerpen = {d.topic for d in result.selected if d.topic}
+    deelonderwerpen = {(d.topic, d.subtopic) for d in result.selected if d.subtopic}
+    if onderwerpen:
+        console.print(f"onderwerpen: [cyan]{len(onderwerpen)}[/] · "
+                      f"deelonderwerpen: [cyan]{len(deelonderwerpen)}[/] "
+                      "(menu in topics.json)")
     if result.manifest is not None:
         total_ms = result.manifest["runtime_ms"]["total"]
         console.print(f"runtime: [magenta]{total_ms / 1000:.1f}s[/] totaal "
                       "(per-stage in run-manifest.json)")
-    console.print(f"uitvoer in [blue]{result.out_dir}[/]: "
-                  "inventory.xlsx, relations.json, criteria.json, run-manifest.json, audit.jsonl")
+    console.print(f"uitvoer in [blue]{result.out_dir}[/]: inventory.xlsx, relations.json, "
+                  "criteria.json, topics.json, run-manifest.json, audit.jsonl")
 
 
 @app.command()

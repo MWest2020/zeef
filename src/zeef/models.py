@@ -61,6 +61,8 @@ class Document(BaseModel):
     decision: Decision = "undecided"
     decision_reason: str = ""
     rationale: str = ""  # per-document relevantie-motivatie (LLM); los van decision_reason
+    topic: str = ""  # onderwerp-label uit topic-clustering (deelonderwerp-menu); leeg vóór die stage
+    subtopic: str = ""  # deelonderwerp-label, genest binnen `topic`
 
     def add_relation(self, kind: RelationKind, target_id: str, evidence: str) -> None:
         """Voeg een relatie toe (idempotent op (kind, target_id))."""

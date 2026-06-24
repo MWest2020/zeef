@@ -69,6 +69,15 @@ class Settings(BaseSettings):
     # behoud meer (recall-veiliger). Default conservatief richting behouden.
     redaction_ratio_threshold: float = 0.10
 
+    # --- topic-clustering (deelonderwerp-menu) ---------------------------------------------
+    # Cosinus-afstandsdrempels waarop het dendrogram wordt geknipt (criterion="distance"):
+    # grof = onderwerp, fijn = deelonderwerp (genest, want fijner = kleinere drempel). Hoger =
+    # grovere, minder clusters. Conservatieve gokken tot de echte set bekend is; gelogd in het
+    # manifest, afstembaar. Clusters kleiner dan `min_cluster_size` vallen in één "Overig".
+    onderwerp_distance: float = 0.8
+    deelonderwerp_distance: float = 0.5
+    min_cluster_size: int = 3
+
 
 class NullLLM:
     """LLM-vervanger voor `--no-llm`: weigert elke generatieve call expliciet.
