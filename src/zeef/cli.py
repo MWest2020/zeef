@@ -168,15 +168,17 @@ def discover(
     console.print(f"[bold]zeef {__version__}[/] — discover · profiel [cyan]{profile.value}[/]"
                   f"{' [yellow](--no-llm)[/]' if no_llm else ''}"
                   f"{' [magenta](abonnement)[/]' if subscription else ''}")
-    extra = {} if min_cluster_size is None else {"min_cluster_size": min_cluster_size}
+    # Clustering-afstanden, min-cluster-size én chunk-cap: laat run_discover zijn discover-defaults
+    # toepassen (gekalibreerd op een vol corpus); geef alleen mee wat de CLI expliciet zet.
+    extra = {k: v for k, v in (("min_cluster_size", min_cluster_size),
+                               ("onderwerp_distance", onderwerp_distance),
+                               ("deelonderwerp_distance", deelonderwerp_distance),
+                               ("max_chunks_per_doc", max_chunks)) if v is not None}
     result = run_discover(
         docs, providers, out_dir, audit,
         validity_min_chars=settings.validity_min_chars if min_chars is None else min_chars,
         redaction_ratio_threshold=settings.redaction_ratio_threshold if redaction_ratio is None else redaction_ratio,
         near_dup_threshold=settings.near_dup_threshold if near_dup is None else near_dup,
-        onderwerp_distance=settings.onderwerp_distance if onderwerp_distance is None else onderwerp_distance,
-        deelonderwerp_distance=settings.deelonderwerp_distance if deelonderwerp_distance is None else deelonderwerp_distance,
-        max_chunks_per_doc=settings.max_chunks_per_doc if max_chunks is None else max_chunks,
         summary_max_words=settings.summary_max_words,
         progress=lambda s: console.print(f"  [dim]→[/] {s}"), **extra)
     counts = result.counts()

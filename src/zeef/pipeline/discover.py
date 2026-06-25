@@ -24,11 +24,10 @@ from zeef.pipeline.ingest import ingest
 from zeef.pipeline.relate import relate
 from zeef.pipeline.retrieve import embed_chunks
 from zeef.pipeline.run import (
-    DEFAULT_DEELONDERWERP_DISTANCE,
+    DEFAULT_DISCOVER_DEELONDERWERP_DISTANCE,
     DEFAULT_DISCOVER_MIN_CLUSTER_SIZE,
-    DEFAULT_MAX_CHUNKS_PER_DOC,
+    DEFAULT_DISCOVER_ONDERWERP_DISTANCE,
     DEFAULT_NEAR_DUP_THRESHOLD,
-    DEFAULT_ONDERWERP_DISTANCE,
     DEFAULT_REDACTION_RATIO_THRESHOLD,
     DEFAULT_SUMMARY_MAX_WORDS,
     DEFAULT_VALIDITY_MIN_CHARS,
@@ -37,6 +36,10 @@ from zeef.pipeline.summarise import summarise_cluster
 from zeef.pipeline.topics import cluster_topics
 from zeef.pipeline.validity import REDACTION_META_KEY, validity_gate
 from zeef.profiles import ProviderBundle
+
+# Discover-demo-default voor de chunk-cap: 6 (cap 3 was smoke-fidelity tijdens de analyse). Lager
+# dan de converge-default 40 omdat discover over een vol corpus embedt — zie lessons_learned.md.
+DEFAULT_DISCOVER_MAX_CHUNKS_PER_DOC = 6
 
 
 @dataclass(frozen=True)
@@ -66,10 +69,10 @@ def run_discover(
     validity_min_chars: int = DEFAULT_VALIDITY_MIN_CHARS,
     redaction_ratio_threshold: float = DEFAULT_REDACTION_RATIO_THRESHOLD,
     near_dup_threshold: float = DEFAULT_NEAR_DUP_THRESHOLD,
-    onderwerp_distance: float = DEFAULT_ONDERWERP_DISTANCE,
-    deelonderwerp_distance: float = DEFAULT_DEELONDERWERP_DISTANCE,
+    onderwerp_distance: float = DEFAULT_DISCOVER_ONDERWERP_DISTANCE,
+    deelonderwerp_distance: float = DEFAULT_DISCOVER_DEELONDERWERP_DISTANCE,
     min_cluster_size: int = DEFAULT_DISCOVER_MIN_CLUSTER_SIZE,
-    max_chunks_per_doc: int = DEFAULT_MAX_CHUNKS_PER_DOC,
+    max_chunks_per_doc: int = DEFAULT_DISCOVER_MAX_CHUNKS_PER_DOC,
     summary_max_words: int = DEFAULT_SUMMARY_MAX_WORDS,
     progress=None,
 ) -> DiscoverResult:
@@ -94,7 +97,8 @@ def run_discover(
         redaction_ratio_threshold=redaction_ratio_threshold))
     run_stage("relate", lambda: relate(docs, providers.embed, audit,
                                        near_dup_threshold=near_dup_threshold))
-    corpus = run_stage("embed", lambda: embed_chunks(docs, providers.embed, audit))
+    corpus = run_stage("embed", lambda: embed_chunks(
+        docs, providers.embed, audit, max_chunks_per_doc=max_chunks_per_doc))
     topics = run_stage("topics", lambda: cluster_topics(
         corpus, providers, audit, onderwerp_distance=onderwerp_distance,
         deelonderwerp_distance=deelonderwerp_distance, min_cluster_size=min_cluster_size,

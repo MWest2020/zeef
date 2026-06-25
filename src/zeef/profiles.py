@@ -48,7 +48,10 @@ def _resolve_embed_rerank(
         if settings.sovereign_embed == "ollama":
             from zeef.drivers.ollama import OllamaEmbed
 
-            return OllamaEmbed(settings.ollama_host, settings.ollama_embed_model), LexicalReranker()
+            return OllamaEmbed(
+                settings.ollama_host, settings.ollama_embed_model,
+                char_budget=settings.ollama_embed_chars,
+            ), LexicalReranker()
         # Air-gapped default: deterministisch, geen netwerk of gewichten nodig.
         return HashingEmbed(), LexicalReranker()
     if profile is ProfileName.cloud:

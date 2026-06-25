@@ -25,22 +25,29 @@ def candidates_of(docs: list[Document]) -> list[Document]:
 
 def embed_chunks(
     docs: list[Document], embed: EmbeddingProvider, audit: AuditLog,
-    *, chunk_size: int = DEFAULT_CHUNK_SIZE,
+    *, chunk_size: int = DEFAULT_CHUNK_SIZE, max_chunks_per_doc: int = 0,
 ) -> list[Document]:
     """Chunk + embed elk valide, niet-uitgesloten document en bewáár de chunks (mét embedding) op het
-    document. Voor de query-loze discover-route: zo heeft `cluster_topics` echte chunk-embeddings (en
-    werkt de `max_chunks_per_doc`-cap), zonder per-document lazy te herembedden. Geeft het valide,
-    gededupliceerde corpus terug."""
+    document. Voor de query-loze discover-route: zo heeft `cluster_topics` echte chunk-embeddings,
+    zonder per-document lazy te herembedden. `max_chunks_per_doc` (>0) capt vóór het embedden via
+    gelijkmatige bemonstering — zodat we op een groot corpus niet tienduizenden chunks embedden die de
+    clustering tóch samplet. Geeft het valide, gededupliceerde corpus terug."""
     targets = candidates_of(docs)
+    total = 0
     for doc in targets:
         chunks = chunk_document(doc, chunk_size)
+        if 0 < max_chunks_per_doc < len(chunks):
+            step = len(chunks) / max_chunks_per_doc
+            chunks = [chunks[int(i * step)] for i in range(max_chunks_per_doc)]
         vecs = embed.embed([c.text for c in chunks])
         for chunk, vec in zip(chunks, vecs):
             chunk.embedding = vec
         doc.chunks = chunks
+        total += len(chunks)
     audit.event("embed", "embed-corpus", model=getattr(embed, "name", "?"),
                 location=getattr(embed, "location", "?"),
-                inputs={"documents": len(targets), "chunk_size": chunk_size})
+                inputs={"documents": len(targets), "chunks": total, "chunk_size": chunk_size,
+                        "max_chunks_per_doc": max_chunks_per_doc})
     return targets
 
 

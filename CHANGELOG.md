@@ -6,6 +6,13 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-25 — fix: discover demo-defaults + Ollama-robuustheid (gevalideerd op 1,7 GB Woo-corpus)
+
+Discover-defaults gekalibreerd op een echt corpus (zie `lessons_learned.md`): `onderwerp_distance=0.50`,
+`deelonderwerp_distance=0.42`, `min_cluster_size=5`, chunk-cap 6 (cap 3 = smoke-fidelity); plus
+Ollama-driver-hardening (retry + nulvector-fallback), instelbare `ZEEF_OLLAMA_EMBED_CHARS` en een
+chunk-cap bij het embedden — zodat een volledige discover-run op honderden PDF's niet crasht of urenlang draait.
+
 ### 2026-06-24 — feat: discover-mode — query-loze onderwerp-landkaart over het volledige corpus
 
 **Waarom:** zeefs hele pijplijn hangt aan een query (`articulate_criteria` → retrieve → … filtert
