@@ -74,6 +74,10 @@ def retrieve(
         if hybrid_alpha > 0.0:
             sim = _hybrid(sim, query, doc, hybrid_alpha, candidates)
         doc.scores["embed_sim"] = round(sim, 6)
+        # De selector: de max-chunk best-passage cosine is de `final`-score, op ELKE kandidaat.
+        # rerank/score schrijven `final` niet meer, dus de cosine rankt de volledige set (geen
+        # verborgen recall-gate). Onder `--no-llm` blijft `final` hierdoor de cosine.
+        doc.scores["final"] = round(sim, 6)
     audit.event(STAGE, "embed", model=model, location=location,
                 inputs={"query": query, "candidates": len(candidates),
                         "chunk_size": chunk_size})

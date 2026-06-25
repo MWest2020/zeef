@@ -35,21 +35,19 @@ def test_candidates_get_embed_sim(tmp_path):
     assert docs[0].scores["embed_sim"] > docs[1].scores["embed_sim"]
 
 
-def test_rerank_records_scores_and_reorders(tmp_path):
+def test_rerank_records_side_score_without_overriding_cosine(tmp_path):
     audit = AuditLog(tmp_path / "a.jsonl")
-    # Geconstrueerd zodat embed (TF-concentratie) en BM25 (distincte querytermen, idf)
-    # een ándere top opleveren: embed verkiest d1, rerank verkiest d2.
+    # Geconstrueerd zodat embed (TF-concentratie) en BM25 (distincte querytermen) verschillen.
     d1 = _doc("d1", "beta beta beta beta beta")
     d2 = _doc("d2", "beta gamma delta epsilon zeta eta theta iota kappa lambda")
     query = "beta gamma"
     cands = retrieve([d1, d2], HashingEmbed(), audit, query)
     embed_order = [d.id for d in sorted(cands, key=lambda d: d.scores["embed_sim"], reverse=True)]
     ordered = rerank(cands, LexicalReranker(), audit, query)
-    rerank_order = [d.id for d in ordered]
-    assert all("rerank" in d.scores and "final" in d.scores for d in ordered)
-    assert embed_order[0] == "d1"
-    assert rerank_order[0] == "d2"
-    assert embed_order != rerank_order  # rerank herordent
+    # rerank legt zijn score als side-score vast maar schrijft `final` NIET en herordent niet:
+    assert all("rerank" in d.scores for d in ordered)
+    assert all(d.scores["final"] == d.scores["embed_sim"] for d in ordered)  # final = cosine
+    assert [d.id for d in ordered] == embed_order   # cosine-volgorde behouden, geen reorder/gate
 
 
 def test_excluded_docs_are_not_candidates(tmp_path):
