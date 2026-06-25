@@ -6,6 +6,27 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-25 — docs: twee OpenSpec-proposals (nog niet geïmplementeerd)
+
+**Waarom:** twee afzonderlijk-mergebare verbeteringen op de relevantie-as vastleggen vóór
+implementatie, zodat scope, blast radius en invarianten reviewbaar zijn. Boring/auditable:
+determinisme behouden, publieke contracten ongemoeid, fallback intact.
+
+**Wat (alleen planning-artefacten — `proposal.md` + `design.md` + `tasks.md` + spec-delta's):**
+- `bm25-reuse` — vervang de handgeschreven Okapi-BM25 in `LexicalReranker` door
+  `rank_bm25.BM25Okapi`; contract (signatuur, lengte/volgorde, strikt 0..1, deterministisch,
+  air-gapped) blijft. Verplichte equivalentie-eisen vastgelegd: query-term-dedup (D-DEDUP) en een
+  adversariële equivalentietest i.p.v. een zelfbevestigende (D-TEST); footprint-onderbouwing voor
+  zelfbouw vervalt (D-FOOTPRINT: numpy zit al via datasketch/scipy in elke sovereign run).
+- `structured-llm-score` — vervang de regex-parse in `pipeline/score.py` door gestructureerde
+  output (schema: score 0-100 + motivatie) waar de backend dat ondersteunt; regex als fallback.
+  Capability expliciet via `runtime_checkable StructuredLLMProvider` (D-CAPABILITY); JSON-pad logt
+  ook schema + ruwe respons (D-AUDIT); `complete()` ongemoeid, `--no-llm` skip intact.
+
+**Status:** bestanden disjunct → afzonderlijk mergebaar; geen code gewijzigd. Implementatie volgt
+serieel (eerst `bm25-reuse`, valideren + sovereign smoke-run + archiveren, dán
+`structured-llm-score`) op expliciete go.
+
 ### 2026-06-24 — feat: viewer-ui — self-contained, offline `report.html` + `excluded.json`
 
 **Waarom:** de criteria eisen dat het resultaat controleerbaar is — **zowel de geselecteerde ~100
