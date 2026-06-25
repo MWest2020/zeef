@@ -12,6 +12,7 @@ nodig is. Elke call gaat naar `http://localhost:11434` (of `ZEEF_OLLAMA_HOST`).
 
 from __future__ import annotations
 
+import http.client
 import json
 import sys
 import time
@@ -80,11 +81,14 @@ class OllamaEmbed:
                 )
                 emb = res.get("embedding") or []
                 return [float(x) for x in emb] if emb else None
-            except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+            except (urllib.error.URLError, OSError, http.client.HTTPException) as exc:
+                # URLError (incl. HTTPError), OSError (incl. ConnectionResetError /
+                # RemoteDisconnected — Ollama dropt onder zware sustained belasting de verbinding)
+                # en HTTPException (BadStatusLine/IncompleteRead). Eén retry, dan nulvector-fallback.
                 if attempt == 1:
                     time.sleep(0.5)
                     continue
-                print(f"ollama-embed: {exc} na retry — nulvector-fallback (→ Overig)",
+                print(f"ollama-embed: {exc!r} na retry — nulvector-fallback (→ Overig)",
                       file=sys.stderr)
                 return None
         return None
