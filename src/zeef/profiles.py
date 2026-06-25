@@ -55,9 +55,19 @@ def _resolve_embed_rerank(
         # Air-gapped default: deterministisch, geen netwerk of gewichten nodig.
         return HashingEmbed(), LexicalReranker()
     if profile is ProfileName.cloud:
-        from zeef.drivers.cloud import VoyageEmbed, VoyageReranker
+        from zeef.drivers.voyage import VoyageEmbed, VoyageReranker
 
-        return VoyageEmbed(), VoyageReranker()
+        return (
+            VoyageEmbed(
+                embed_chars=settings.voyage_embed_chars,
+                batch_size=settings.voyage_embed_batch_size,
+                batch_chars=settings.voyage_embed_batch_chars,
+            ),
+            VoyageReranker(
+                rerank_chars=settings.voyage_rerank_chars,
+                max_total_tokens=settings.voyage_rerank_max_total_tokens,
+            ),
+        )
     raise ValueError(f"onbekend profiel: {profile!r}")
 
 

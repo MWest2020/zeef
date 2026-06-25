@@ -65,6 +65,17 @@ class Settings(BaseSettings):
     llm_backend: str | None = None
     # Het Claude-model voor de cloud-LLM (None = driver-default). Bv. een Haiku-model-id.
     cloud_llm_model: str | None = None
+    # --- cloud transport-grenzen (Voyage) -------------------------------------------------
+    # Voyage bound elke request (max 1.000 inputs; per-request tokenbudget). De drivers trunceren
+    # per input en batchen embeddings; rerank wordt NIET gesplitst (score-onafhankelijkheid
+    # onbevestigd, design D-RERANK-SPLIT) maar getrunceerd zodat de set in één call past, en faalt
+    # hard als dat niet lukt. Defaults conservatief tegen de geverifieerde limieten (embeddings
+    # 320K/120K-tier; rerank-2 600K totaal, query+doc ≤ 16K tok). Gelogd in het manifest.
+    voyage_embed_chars: int = 16000          # per-input truncatie (~5K tok); ruim onder context
+    voyage_embed_batch_size: int = 64        # < 1.000-input-limiet
+    voyage_embed_batch_chars: int = 300000   # ~100K tok/req < 120K conservatieve tier
+    voyage_rerank_chars: int = 4000          # per-doc truncatie; query+doc ≪ 16K-tok cap
+    voyage_rerank_max_total_tokens: int = 550000  # < rerank-2 600K; harde gate (geen split)
     # Optioneel pad: append-only JSONL met tokengebruik per cloud-LLM-call (voor kosten).
     llm_usage_log: str | None = None
     # Hoeveel reranked kandidaten de LLM-relevantiescoring beoordeelt (0 = alle). Bovengrens op

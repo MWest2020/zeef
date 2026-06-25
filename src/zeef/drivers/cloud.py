@@ -1,13 +1,13 @@
-"""Cloud-drivers: Claude API (LLM) + Voyage (embedding/rerank). Key-gated, niet live getest.
+"""Cloud-LLM-driver: Claude API. Key-gated; sleutel uitsluitend uit de omgeving.
 
-Deze drivers implementeren dezelfde interfaces als de soevereine varianten, maar praten met
-een externe API en vereisen dus egress. Constructie is altijd toegestaan (zodat profiel-
-resolutie werkt zonder keys); een echte call faalt met een duidelijke melding zodra de
-benodigde sleutel ontbreekt. Sleutels komen uitsluitend uit de omgeving, nooit uit code of
-een gecommit configbestand (design.md D4, provider-profiles spec).
+Implementeert dezelfde `LLMProvider`-interface als de soevereine varianten, maar praat met een
+externe API en vereist dus egress. Constructie is altijd toegestaan (zodat profiel-resolutie
+werkt zonder keys); een echte call faalt met een duidelijke melding zodra de benodigde sleutel
+ontbreekt. Sleutels komen uitsluitend uit de omgeving, nooit uit code of een gecommit
+configbestand (design.md D4, provider-profiles spec).
 
-In deze change worden de cloud-drivers niet live getest: er zijn geen sleutels en de egress
-in de doelomgeving is nog onbevestigd (open vraag Q3, 26 juni).
+De Voyage-embedding/rerank-drivers staan in `drivers/voyage.py` (request-grens-bewust); `_require`
+hieronder wordt door beide hergebruikt.
 """
 
 from __future__ import annotations
@@ -15,13 +15,10 @@ from __future__ import annotations
 import json
 import os
 import sys
-import urllib.request
 
 CLAUDE_MODEL = "claude-opus-4-8"
 # Beta-header die OAuth (abonnement) op /v1/messages vereist.
 _OAUTH_BETA = "oauth-2025-04-20"
-VOYAGE_EMBED_MODEL = "voyage-3"
-VOYAGE_RERANK_MODEL = "rerank-2"
 
 
 def _require(value: str | None, env_name: str) -> str:
@@ -102,51 +99,3 @@ class ClaudeLLM:
         with open(self._usage_log, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(record) + "\n")
 
-
-class _VoyageClient:
-    def __init__(self, api_key: str | None) -> None:
-        self._api_key = api_key or os.environ.get("VOYAGE_API_KEY")
-
-    def _post(self, path: str, payload: dict) -> dict:
-        key = _require(self._api_key, "VOYAGE_API_KEY")
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            f"https://api.voyageai.com/v1{path}",
-            data=data,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
-        )
-        with urllib.request.urlopen(req) as resp:  # noqa: S310 — vaste, getrouste host
-            return json.loads(resp.read().decode("utf-8"))
-
-
-class VoyageEmbed:
-    """Hosted embeddings via Voyage AI. Sleutel uit `VOYAGE_API_KEY`."""
-
-    location = "cloud"
-
-    def __init__(self, api_key: str | None = None, model: str = VOYAGE_EMBED_MODEL) -> None:
-        self._client = _VoyageClient(api_key)
-        self.model = model
-        self.name = f"voyage:{model}"
-
-    def embed(self, texts: list[str]) -> list[list[float]]:
-        res = self._client._post("/embeddings", {"model": self.model, "input": texts})
-        return [[float(x) for x in row["embedding"]] for row in res["data"]]
-
-
-class VoyageReranker:
-    """Hosted cross-encoder rerank via Voyage AI. Sleutel uit `VOYAGE_API_KEY`."""
-
-    location = "cloud"
-
-    def __init__(self, api_key: str | None = None, model: str = VOYAGE_RERANK_MODEL) -> None:
-        self._client = _VoyageClient(api_key)
-        self.model = model
-        self.name = f"voyage:{model}"
-
-    def rerank(self, query: str, docs: list[str]) -> list[float]:
-        res = self._client._post(
-            "/rerank", {"model": self.model, "query": query, "documents": docs}
-        )
-        ordered = sorted(res["data"], key=lambda r: r["index"])
-        return [float(r["relevance_score"]) for r in ordered]

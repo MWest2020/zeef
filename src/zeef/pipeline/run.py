@@ -25,6 +25,7 @@ from zeef.export import (
     write_report_html,
     write_topics,
 )
+from zeef.manifest import build_manifest
 from zeef.models import Criteria, Document
 from zeef.pipeline.criteria import articulate_criteria
 from zeef.pipeline.ingest import ingest
@@ -152,44 +153,36 @@ def run_converge(
     run_stage("export", _export)
     total_ms = round((time.perf_counter() - wall_started) * 1000, 1)
 
+    # Cloud transport-grenzen (truncatie + batching) auditbaar maken: providers die hun request
+    # bounden exposen `transport_stats()`; soevereine drivers niet (dan blijft dit leeg). Eén
+    # samenvattend audit-event + opname in het manifest, zodat de toegepaste caps en de
+    # hoeveelheid getrunceerde input navolgbaar zijn (provider-agnostisch — geen cloud-specifieke
+    # tak in de orkestratie).
+    transport: dict[str, Any] = {}
+    for role, prov in (("embed", providers.embed), ("reranker", providers.reranker)):
+        stats = getattr(prov, "transport_stats", None)
+        if callable(stats):
+            transport[role] = stats()
+    if transport:
+        audit.event("cloud", "voyage-transport", inputs=transport)
+
     result = RunResult(documents=docs, selected=selected, out_dir=out_dir, criteria=criteria)
-    manifest: dict[str, Any] = {
-        "schema": "zeef-run-manifest/1",
-        "ts": run_started.isoformat(),
-        "query": query,
-        "providers": {
-            "llm": {
-                "name": getattr(providers.llm, "name", "?"),
-                "location": getattr(providers.llm, "location", "?"),
-                "enabled": not providers.no_llm,
-            },
-            "embed": {
-                "name": getattr(providers.embed, "name", "?"),
-                "location": getattr(providers.embed, "location", "?"),
-            },
-            "reranker": {
-                "name": getattr(providers.reranker, "name", "?"),
-                "location": getattr(providers.reranker, "location", "?"),
-            },
-        },
-        "criteria": {"source": criteria.source, "labels": [c.label for c in criteria.items]},
-        "cutoff": {"mode": mode.value, "value": value},
-        "params": {
-            "recall_bias": recall_bias,
-            "score_top_k": score_top_k,
-            "near_dup_threshold": near_dup_threshold,
-            "overlap_threshold": overlap_threshold,
-            "validity_min_chars": validity_min_chars,
-            "redaction_ratio_threshold": redaction_ratio_threshold,
-            "onderwerp_distance": onderwerp_distance,
-            "deelonderwerp_distance": deelonderwerp_distance,
-            "min_cluster_size": min_cluster_size,
-            "max_chunks_per_doc": max_chunks_per_doc,
-            "summary_max_words": summary_max_words,
-        },
-        "counts": result.counts(),
-        "runtime_ms": {"total": total_ms, "stages": timings},
+    params = {
+        "recall_bias": recall_bias,
+        "score_top_k": score_top_k,
+        "near_dup_threshold": near_dup_threshold,
+        "overlap_threshold": overlap_threshold,
+        "validity_min_chars": validity_min_chars,
+        "redaction_ratio_threshold": redaction_ratio_threshold,
+        "onderwerp_distance": onderwerp_distance,
+        "deelonderwerp_distance": deelonderwerp_distance,
+        "min_cluster_size": min_cluster_size,
+        "max_chunks_per_doc": max_chunks_per_doc,
+        "summary_max_words": summary_max_words,
+        "voyage_transport": transport or None,
     }
+    manifest = build_manifest(run_started.isoformat(), query, providers, criteria, mode, value,
+                              params, result.counts(), total_ms, timings)
     write_manifest(manifest, out_dir / "run-manifest.json")
     audit.event("export", "artifacts-written", inputs={
         "out_dir": str(out_dir),

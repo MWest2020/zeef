@@ -1,7 +1,8 @@
 """Profiel-resolutie: één vlag wisselt de drivers, geen pijplijn-code verandert (spec 3.5)."""
 
 from zeef.config import NullLLM, ProfileName, Settings
-from zeef.drivers.cloud import ClaudeLLM, VoyageEmbed, VoyageReranker
+from zeef.drivers.cloud import ClaudeLLM
+from zeef.drivers.voyage import VoyageEmbed, VoyageReranker
 from zeef.drivers.local import HashingEmbed, LexicalReranker
 from zeef.drivers.ollama import OllamaLLM
 from zeef.profiles import resolve_providers

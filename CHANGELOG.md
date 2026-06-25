@@ -6,6 +6,40 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-25 — feat(cloud): Voyage transport-hardening (branch `change/voyage-transport-hardening`, NIET op main)
+
+**Waarom:** de cloud-drivers waren niet productiegehard (`drivers/cloud.py`: "niet live getest")
+en crashten op een realistisch corpus (414 PDFs / 1.7 GB): `relate` embedde alle volledige
+doc-teksten in één Voyage-call, rerank stuurde alle volledige teksten in één call → over de
+per-request tokenlimiet → HTTP 400. Deze branch maakt een echte cloud-converge-run mogelijk
+**zonder main aan te raken** (main blijft de soevereine demo-bodem). Implementatie van OpenSpec
+change `voyage-transport-hardening`.
+
+**Wat:**
+- **Transport-fix, selectie-semantiek ongemoeid.** Per-input truncatie (client-side,
+  deterministisch) + batching verplaatst naar een nieuwe module `drivers/voyage.py`
+  (`VoyageEmbed`/`VoyageReranker`). Embeddings batchen exact (elke input embed onafhankelijk).
+  `cloud.py` houdt alleen `ClaudeLLM` + gedeelde `_require`.
+- **Rerank NIET gesplitst (D-RERANK-SPLIT).** Voyage-docs (geverifieerd) bevestigen niet dat
+  `relevance_score` batch-onafhankelijk is → niet splitsen, wél trunceren zodat de set in één call
+  past; past het niet binnen het budget (rerank-2: `query_tok × n + Σ doc_tok ≤ 600K`) of > 1.000
+  docs → **hard falen**, geen gok in de selector.
+- **Defaults geverifieerd tegen de actuele Voyage-limieten** (embeddings 320K/120K-tier; rerank-2
+  600K, query+doc ≤ 16K tok). Conservatief: `voyage_embed_chars=16000`, `embed_batch_size=64`,
+  `embed_batch_chars=300000`, `rerank_chars=4000`, `rerank_max_total_tokens=550000`
+  (config `ZEEF_`-env-overrides).
+- **Auditbaarheid.** `transport_stats()` per provider → opgenomen in `run-manifest.json`
+  (`params.voyage_transport`: welke caps, hoeveel inputs getrunceerd, #requests) + één
+  `cloud/voyage-transport` audit-event.
+- **Manifest-bouw** verplaatst naar `manifest.py` (run.py dun + onder de 200-regellimiet).
+
+**Bestanden:** `src/zeef/drivers/voyage.py` (nieuw), `drivers/cloud.py` (ingekort tot ClaudeLLM),
+`manifest.py` (nieuw), `config.py`, `profiles.py`, `pipeline/run.py`,
+`tests/test_cloud_transport.py` (nieuw), `tests/test_profiles.py`.
+
+**Tests:** volledige suite **133 passed, 1 skipped** (live-smoke gated); `ruff check src tests`
+schoon; alle bronbestanden ≤ 200 regels.
+
 ### 2026-06-25 — docs: twee OpenSpec-proposals (nog niet geïmplementeerd)
 
 **Waarom:** twee afzonderlijk-mergebare verbeteringen op de relevantie-as vastleggen vóór
