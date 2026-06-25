@@ -12,74 +12,65 @@ from __future__ import annotations
 
 import json
 import os
+import random
+import sys
+import time
+import urllib.error
 import urllib.request
 
+from zeef.drivers._voyage_util import _CHARS_PER_TOKEN_EST, _batches, _truncate
 from zeef.drivers.cloud import _require
+
+# Re-export zodat bestaande importeurs/tests `_truncate`/`_batches` uit dit pad blijven vinden.
+__all__ = ["VoyageEmbed", "VoyageReranker", "_truncate", "_batches"]
 
 VOYAGE_EMBED_MODEL = "voyage-3"
 VOYAGE_RERANK_MODEL = "rerank-2"
 
-# Conservatieve token-schatting (Voyage ~3-4 tekens/token NL): delen door 3 overschat tokens, dus
-# de grens grijpt vroeger in (veilig) i.p.v. een echte 400 te riskeren.
-_CHARS_PER_TOKEN_EST = 3
+# Bounded retry op transiente Voyage-fouten (429 rate-limit, 5xx). De pijplijn mag niet stil
+# omvallen op een rate-limit-hapering; we backen exponentieel af (en honoreren `Retry-After`),
+# capped, met logging per poging. Geen retry op 4xx-anders (echte requestfouten — fail loud).
+_MAX_RETRIES = 6
+_BASE_DELAY_S = 2.0
+_MAX_DELAY_S = 60.0
 
 
 class _VoyageClient:
     def __init__(self, api_key: str | None) -> None:
         self._api_key = api_key or os.environ.get("VOYAGE_API_KEY")
+        self._retries = 0
 
     def _post(self, path: str, payload: dict) -> dict:
         key = _require(self._api_key, "VOYAGE_API_KEY")
         data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            f"https://api.voyageai.com/v1{path}",
-            data=data,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
-        )
-        with urllib.request.urlopen(req) as resp:  # noqa: S310 — vaste, getrouste host
-            return json.loads(resp.read().decode("utf-8"))
+        for attempt in range(_MAX_RETRIES + 1):
+            req = urllib.request.Request(
+                f"https://api.voyageai.com/v1{path}",
+                data=data,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+            )
+            try:
+                with urllib.request.urlopen(req) as resp:  # noqa: S310 — vaste, getrouste host
+                    return json.loads(resp.read().decode("utf-8"))
+            except urllib.error.HTTPError as exc:
+                retryable = exc.code == 429 or 500 <= exc.code < 600
+                if not retryable or attempt == _MAX_RETRIES:
+                    raise
+                delay = self._retry_delay(exc, attempt)
+                self._retries += 1
+                sys.stderr.write(
+                    f"voyage: HTTP {exc.code} op {path}; retry {attempt + 1}/{_MAX_RETRIES} "
+                    f"na {delay:.1f}s\n"
+                )
+                time.sleep(delay)
+        raise RuntimeError("voyage: retry-lus eindigde zonder resultaat")  # pragma: no cover
 
-
-def _truncate(texts: list[str], max_chars: int) -> tuple[list[str], int, int]:
-    """Kap elke tekst op `max_chars` (≤0 = uit). Geeft (gekapte_lijst, aantal_gekapt, max_orig_len).
-
-    Truncatie is deterministisch (eerste `max_chars` tekens) en client-side, zodat de toegepaste
-    grens reproduceerbaar en auditbaar is i.p.v. server-side stil afgekapt.
-    """
-    max_orig = max((len(t) for t in texts), default=0)
-    if max_chars <= 0:
-        return list(texts), 0, max_orig
-    out: list[str] = []
-    truncated = 0
-    for t in texts:
-        if len(t) > max_chars:
-            out.append(t[:max_chars])
-            truncated += 1
-        else:
-            out.append(t)
-    return out, truncated, max_orig
-
-
-def _batches(texts: list[str], max_count: int, max_chars: int):
-    """Splits `texts` in batches onder zowel het aantal- als het cumulatieve tekenbudget.
-
-    Yields `(start_index, sublist)` zodat de aanroeper de resultaten op hun oorspronkelijke
-    positie terugplaatst. Een enkele tekst die (al getrunceerd) tóch het char-budget overschrijdt
-    krijgt een eigen batch — kleiner kan niet zonder data te knippen.
-    """
-    batch: list[str] = []
-    batch_chars = 0
-    start = 0
-    for i, t in enumerate(texts):
-        too_many = max_count > 0 and len(batch) >= max_count
-        too_big = max_chars > 0 and batch and (batch_chars + len(t)) > max_chars
-        if too_many or too_big:
-            yield start, batch
-            batch, batch_chars, start = [], 0, i
-        batch.append(t)
-        batch_chars += len(t)
-    if batch:
-        yield start, batch
+    @staticmethod
+    def _retry_delay(exc: urllib.error.HTTPError, attempt: int) -> float:
+        retry_after = exc.headers.get("Retry-After") if exc.headers else None
+        if retry_after and retry_after.strip().isdigit():
+            return min(float(retry_after), _MAX_DELAY_S)
+        return min(_BASE_DELAY_S * (2 ** attempt), _MAX_DELAY_S) + random.uniform(0, 0.5)
 
 
 class VoyageEmbed:
@@ -130,6 +121,7 @@ class VoyageEmbed:
             "embed_chars": self.embed_chars, "batch_size": self.batch_size,
             "batch_chars": self.batch_chars, "truncated_inputs": self._truncated_inputs,
             "max_original_len": self._max_original_len, "requests": self._requests,
+            "retries": self._client._retries,
         }
 
 
@@ -197,4 +189,5 @@ class VoyageReranker:
             "rerank_chars": self.rerank_chars, "max_total_tokens": self.max_total_tokens,
             "truncated_docs": self._truncated_docs, "max_original_len": self._max_original_len,
             "last_doc_count": self._last_doc_count, "last_est_tokens": self._last_est_tokens,
+            "retries": self._client._retries,
         }

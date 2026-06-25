@@ -37,6 +37,14 @@ change `voyage-transport-hardening`.
   relevantiescoring-LLM aan blijft. Nodig om de gate-stand gelijk te houden aan een
   vergelijkingsrun zonder die poort, zodat de poort geen extra variabele wordt. Knop op
   `ProviderBundle`; gelogd in `scope-complete`-event, `llm-skipped`-reden en manifest-params.
+- **Retry/back-off op transiente Voyage-fouten** (429/5xx): bounded (6 pogingen), exponentieel met
+  `Retry-After`-respect, gecapt op 60s, logging per poging; geen retry op andere 4xx (fail loud).
+  Herziet D-NO-RETRY uit het voorstel — een echte cloud-run liep tegen aanhoudende 429's aan en
+  mag niet stil omvallen op een rate-limit. Retry-teller in `transport_stats`. Pure helpers
+  (`_truncate`/`_batches`) naar `drivers/_voyage_util.py` om voyage.py ≤200 regels te houden.
+- **Bevinding (niet opgelost in code):** de Voyage-key zit op een lage rate-limit-tier (~16s/call
+  gemeten, bursty 429). Een volle 414-doc-run (~420 requests) duurt daardoor ~2-2,5u en kan de
+  retry-cap uitputten. Tier-upgrade of lagere request-volume nodig voor een vlotte run.
 
 **Bestanden:** `src/zeef/drivers/voyage.py` (nieuw), `drivers/cloud.py` (ingekort tot ClaudeLLM),
 `manifest.py` (nieuw), `config.py`, `profiles.py`, `pipeline/run.py`,

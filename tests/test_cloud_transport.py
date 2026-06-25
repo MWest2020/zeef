@@ -9,9 +9,28 @@ het niet in één call past (design D-RERANK-SPLIT).
 
 from __future__ import annotations
 
+import urllib.error
+
 import pytest
 
+from zeef.drivers import voyage as voyage_mod
 from zeef.drivers.voyage import VoyageEmbed, VoyageReranker, _batches, _truncate
+
+
+class _FakeResp:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        return b'{"ok": true}'
+
+
+def _http_error(code, retry_after=None):
+    hdrs = {"Retry-After": retry_after} if retry_after is not None else {}
+    return urllib.error.HTTPError("https://api.voyageai.com/v1/embeddings", code, "x", hdrs, None)
 
 
 # --- helpers: fakes die de echte HTTP-call vervangen ---------------------------------------
@@ -148,3 +167,36 @@ def test_rerank_fails_loudly_over_doc_limit():
     rr._client._post = _fake_rerank_post([])
     with pytest.raises(RuntimeError, match="docs >"):
         rr.rerank("q", ["a", "b", "c"])
+
+
+# --- retry/back-off op transiente fouten (429/5xx) -----------------------------------------
+
+
+def test_post_retries_on_429_then_succeeds(monkeypatch):
+    calls = {"n": 0}
+
+    def fake_urlopen(req):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise _http_error(429, retry_after="0")
+        return _FakeResp()
+
+    monkeypatch.setattr(voyage_mod.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(voyage_mod.time, "sleep", lambda s: None)
+    client = voyage_mod._VoyageClient("k")
+    out = client._post("/embeddings", {"x": 1})
+    assert out == {"ok": True}
+    assert calls["n"] == 2  # eenmaal gefaald (429), eenmaal gelukt
+    assert client._retries == 1
+
+
+def test_post_does_not_retry_on_400(monkeypatch):
+    def fake_urlopen(req):
+        raise _http_error(400)
+
+    monkeypatch.setattr(voyage_mod.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(voyage_mod.time, "sleep", lambda s: None)
+    client = voyage_mod._VoyageClient("k")
+    with pytest.raises(urllib.error.HTTPError):
+        client._post("/embeddings", {"x": 1})
+    assert client._retries == 0  # 4xx-anders = geen retry, fail loud
