@@ -42,9 +42,16 @@ def _is_exclude_verdict(verdict: str) -> bool:
 
 
 def scope_filter(
-    docs: list[Document], providers: ProviderBundle, audit: AuditLog, query: str
+    docs: list[Document], providers: ProviderBundle, audit: AuditLog, query: str,
+    *, scope_llm: bool = True,
 ) -> list[Document]:
-    """Markeer out-of-scope documenten; laat de rest `undecided` voor retrieval."""
+    """Markeer out-of-scope documenten; laat de rest `undecided` voor retrieval.
+
+    `scope_llm=False` zet de per-doc LLM-poort uit: alleen de deterministische `RULES` beslissen
+    reikwijdte, de twijfelgevallen blijven `undecided` en stromen naar de selector. Reikwijdte
+    wordt zo zuiver procesrol (regels), relevantie blijft de selector — de LLM velt geen
+    reikwijdte-oordeel meer.
+    """
     residue: list[Document] = []
     for doc in docs:
         reason = _apply_rules(doc)
@@ -54,11 +61,16 @@ def scope_filter(
             audit.event(STAGE, "excluded", document_ids=[doc.id], inputs={"reason": reason})
         else:
             residue.append(doc)
-    _llm_fallback(residue, providers, audit, query)
+    if scope_llm:
+        _llm_fallback(residue, providers, audit, query)
+    elif residue:
+        audit.event(STAGE, "llm-gate-off", document_ids=[d.id for d in residue],
+                    inputs={"reason": "scope_filter_llm=off: alleen regels; twijfel → undecided",
+                            "residue": len(residue)})
     audit.event(STAGE, "scope-complete", inputs={
         "excluded": sum(1 for d in docs if d.decision == "out_of_scope"),
         "undecided": sum(1 for d in docs if d.decision == "undecided"),
-        "no_llm": providers.no_llm,
+        "no_llm": providers.no_llm, "scope_llm": scope_llm,
     })
     return docs
 

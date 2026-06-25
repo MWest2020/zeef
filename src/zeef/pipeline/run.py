@@ -67,8 +67,7 @@ class RunResult:
         sel = sum(1 for d in self.documents if d.decision == "selected")
         oos = sum(1 for d in self.documents if d.decision == "out_of_scope")
         und = sum(1 for d in self.documents if d.decision == "undecided")
-        # Validity-uitsluitingen zijn een aparte, rapporteerbare categorie (validity-gate-spec):
-        # mechanisch onbruikbaar, los van de semantische scope-filter-uitsluitingen.
+        # Validity-uitsluitingen zijn een aparte categorie (validity-gate-spec): mechanisch onbruikbaar.
         val = sum(1 for d in self.documents if d.decision == "out_of_scope"
                   and d.decision_reason.startswith("validity:"))
         return {"total": len(self.documents), "selected": sel,
@@ -86,6 +85,7 @@ def run_converge(
     *,
     recall_bias: float = 0.0,
     score_top_k: int = 0,
+    scope_filter_llm: bool = True,
     near_dup_threshold: float = DEFAULT_NEAR_DUP_THRESHOLD,
     overlap_threshold: float = DEFAULT_OVERLAP_THRESHOLD,
     validity_min_chars: int = DEFAULT_VALIDITY_MIN_CHARS,
@@ -98,8 +98,7 @@ def run_converge(
     progress=None,
 ) -> RunResult:
     """Draai de volledige convergentie en schrijf de artefacten naar `out_dir`."""
-    # Per-stage wall-clock vastleggen: één 'timing'-event per stage in de audit-log én een
-    # geaggregeerd run-manifest. perf_counter is monotoon (immuun voor klok-aanpassingen).
+    # Per-stage wall-clock: één 'timing'-event per stage + geaggregeerd manifest (perf_counter, monotoon).
     timings: list[dict[str, Any]] = []
 
     def run_stage(name: str, fn):
@@ -123,7 +122,8 @@ def run_converge(
     run_stage("relate", lambda: relate(
         docs, providers.embed, audit, near_dup_threshold=near_dup_threshold,
         overlap_threshold=overlap_threshold))
-    run_stage("scope-filter", lambda: scope_filter(docs, providers, audit, query))
+    run_stage("scope-filter", lambda: scope_filter(
+        docs, providers, audit, query, scope_llm=scope_filter_llm))
     candidates = run_stage("retrieve", lambda: retrieve(docs, providers.embed, audit, query))
     ranked = run_stage("rerank", lambda: rerank(candidates, providers.reranker, audit, query))
     scored = run_stage("score", lambda: score(
@@ -176,7 +176,7 @@ def run_converge(
         "cutoff": {"mode": mode.value, "value": value},
         "params": {
             "recall_bias": recall_bias,
-            "score_top_k": score_top_k,
+            "score_top_k": score_top_k, "scope_filter_llm": scope_filter_llm,
             "near_dup_threshold": near_dup_threshold,
             "overlap_threshold": overlap_threshold,
             "validity_min_chars": validity_min_chars,

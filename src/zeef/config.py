@@ -70,6 +70,11 @@ class Settings(BaseSettings):
     # Hoeveel reranked kandidaten de LLM-relevantiescoring beoordeelt (0 = alle). Bovengrens op
     # de LLM-kosten; ruim boven het ~100-target zodat de recall-trechter niet knelt.
     llm_score_top_k: int = 250
+    # Zet de per-doc LLM-poort in het scope-filter aan/uit. True (default) = huidig gedrag: een
+    # LLM beslist over twijfelgevallen. False = alleen de deterministische RULES (procesrol); de
+    # twijfelgevallen blijven `undecided` en gaan naar de selector. Scheidt reikwijdte (regels)
+    # van relevantie (selector), zodat een klein model geen relevantie-oordeel als reikwijdte velt.
+    scope_filter_llm: bool = True
     # --- validity-gate (deterministische pre-flight; geen LLM) ---
     # Minimaal aantal leesbare tekens; daaronder geldt een document als leeg-na-OCR en wordt het
     # uitgesloten — tenzij er laksignaal is (zie hieronder). Bewust conservatief (laag): liever

@@ -93,7 +93,7 @@ def converge(
         "score_top_k": top_k, "near_dup_threshold": near_dup_threshold,
         "validity_min_chars": validity_min_chars, "redaction_ratio_threshold": redaction_threshold,
         "cutoff_defaulted": cutoff_defaulted, "auth_mode": settings.auth_mode,
-    })
+        "scope_filter_llm": settings.scope_filter_llm})
     console.print(f"[bold]zeef {__version__}[/] — profiel [cyan]{profile.value}[/]"
                   f"{' [yellow](--no-llm)[/]' if no_llm else ''}"
                   f"{' [magenta](abonnement)[/]' if subscription else ''}")
@@ -101,6 +101,7 @@ def converge(
         console.print(f"[dim]geen cutoff opgegeven → default {mode.value}={value}[/]")
     result = run_converge(docs, query, providers, mode, value, out_dir, audit,
                           recall_bias=recall_bias, score_top_k=top_k,
+                          scope_filter_llm=settings.scope_filter_llm,
                           near_dup_threshold=near_dup_threshold,
                           overlap_threshold=settings.overlap_threshold,
                           validity_min_chars=validity_min_chars,
