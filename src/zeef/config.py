@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     overlap_threshold: float = 0.7
     # Max. woorden in de per-document inhoudssamenvatting (summarise-stage, LLM). Gelogd in het manifest.
     summary_max_words: int = 100
+    # Scope-filter-poort losgekoppeld van de scoring: "off" laat het scope-filter rules-only draaien
+    # (LLM-randgeval overgeslagen) terwijl de relevantiescoring-LLM gewoon aan blijft. Nodig om de
+    # gate-stand gelijk te houden aan een vergelijkingsrun zonder die poort. Pydantic parset
+    # ZEEF_SCOPE_FILTER_LLM=off → False. Default True (gedrag onveranderd).
+    scope_filter_llm: bool = True
     # LLM-backend losgekoppeld van het profiel, zodat het scope-filter-LLM onafhankelijk te
     # kiezen is (model-vergelijking): None volgt het profiel ("ollama" bij sovereign, "cloud"
     # bij cloud); expliciet "ollama" of "cloud" overschrijft dat — embeddings/rerank blijven

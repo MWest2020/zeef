@@ -32,6 +32,11 @@ change `voyage-transport-hardening`.
   (`params.voyage_transport`: welke caps, hoeveel inputs getrunceerd, #requests) + één
   `cloud/voyage-transport` audit-event.
 - **Manifest-bouw** verplaatst naar `manifest.py` (run.py dun + onder de 200-regellimiet).
+- **Scope-filter-poort losgekoppeld van de scoring** (`ZEEF_SCOPE_FILTER_LLM`, default aan): `off`
+  laat het scope-filter rules-only draaien (LLM-randgeval overgeslagen) terwijl de
+  relevantiescoring-LLM aan blijft. Nodig om de gate-stand gelijk te houden aan een
+  vergelijkingsrun zonder die poort, zodat de poort geen extra variabele wordt. Knop op
+  `ProviderBundle`; gelogd in `scope-complete`-event, `llm-skipped`-reden en manifest-params.
 
 **Bestanden:** `src/zeef/drivers/voyage.py` (nieuw), `drivers/cloud.py` (ingekort tot ClaudeLLM),
 `manifest.py` (nieuw), `config.py`, `profiles.py`, `pipeline/run.py`,

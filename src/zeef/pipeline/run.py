@@ -179,6 +179,7 @@ def run_converge(
         "min_cluster_size": min_cluster_size,
         "max_chunks_per_doc": max_chunks_per_doc,
         "summary_max_words": summary_max_words,
+        "scope_filter_llm": providers.scope_filter_llm,
         "voyage_transport": transport or None,
     }
     manifest = build_manifest(run_started.isoformat(), query, providers, criteria, mode, value,

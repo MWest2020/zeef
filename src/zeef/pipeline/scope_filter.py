@@ -59,6 +59,7 @@ def scope_filter(
         "excluded": sum(1 for d in docs if d.decision == "out_of_scope"),
         "undecided": sum(1 for d in docs if d.decision == "undecided"),
         "no_llm": providers.no_llm,
+        "scope_filter_llm": providers.scope_filter_llm,
     })
     return docs
 
@@ -76,10 +77,12 @@ def _apply_rules(doc: Document) -> str | None:
 def _llm_fallback(
     residue: list[Document], providers: ProviderBundle, audit: AuditLog, query: str
 ) -> None:
-    if providers.no_llm:
+    if providers.no_llm or not providers.scope_filter_llm:
         if residue:
+            reason = ("--no-llm: twijfelgevallen blijven undecided" if providers.no_llm
+                      else "scope-filter LLM uit (rules-only): twijfelgevallen blijven undecided")
             audit.event(STAGE, "llm-skipped", document_ids=[d.id for d in residue],
-                        inputs={"reason": "--no-llm: twijfelgevallen blijven undecided"})
+                        inputs={"reason": reason})
         return
     llm = providers.llm
     for doc in residue:

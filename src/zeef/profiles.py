@@ -27,6 +27,8 @@ class ProviderBundle:
     embed: EmbeddingProvider
     reranker: RerankerProvider
     no_llm: bool
+    # Scope-filter-poort: False = rules-only (LLM-randgeval overgeslagen), scoring-LLM blijft aan.
+    scope_filter_llm: bool = True
 
 
 def resolve_providers(
@@ -35,7 +37,8 @@ def resolve_providers(
     """Bouw de provider-triple voor dit profiel. Drivers worden lazy geïmporteerd."""
     embed, reranker = _resolve_embed_rerank(profile, settings)
     llm = _resolve_llm(profile, no_llm, settings)
-    return ProviderBundle(llm=llm, embed=embed, reranker=reranker, no_llm=no_llm)
+    return ProviderBundle(llm=llm, embed=embed, reranker=reranker, no_llm=no_llm,
+                          scope_filter_llm=settings.scope_filter_llm)
 
 
 def _resolve_embed_rerank(
