@@ -36,7 +36,7 @@ de facet-selectie.
   `report.html`, eigen `templates/discover_report.html`); gedeelde `_inject_json_html`-helper
   (`<`/`>`/`&`-escaping, textContent-rendering — zelfde discipline als de converge-viewer).
 - `cli.py` — `zeef discover <docs>` met profiel-/`--no-llm`-/`--subscription`-vlaggen en clustering-
-  opties (discover-passende `min_cluster_size`-default 2). Manifest legt clustering-parameters +
+  opties (discover-passende `min_cluster_size`-default 5). Manifest legt clustering-parameters +
   **embedding-bron** vast.
 
 **Uit scope (latere change):** de tweede trap — een ontdekt onderwerp als query aan `converge` geven

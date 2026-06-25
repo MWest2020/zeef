@@ -40,10 +40,10 @@ samenvatting raken — níét elk document afzonderlijk — zodat de kosten begr
 ### Requirement: Navolgbare discover-uitvoer
 Het systeem SHALL de ontdekte landkaart naar een runmap schrijven: de genestte structuur
 (onderwerpen → deelonderwerpen → `doc_id`'s, met labels en samenvattingen) als JSON, samen met de
-append-only `audit.jsonl` en een `report/`-viewer. De gebruikte parameters (clustering-afstanden,
+append-only `audit.jsonl` en een self-contained `report.html`. De gebruikte parameters (clustering-afstanden,
 `min_cluster_size`, embedding-bron) SHALL in het run-manifest worden vastgelegd.
 
 #### Scenario: Runmap met landkaart en audit
 - **WHEN** `discover` klaar is
-- **THEN** bevat de runmap de onderwerp-landkaart als JSON, `audit.jsonl`, en een `report/`-viewer
+- **THEN** bevat de runmap de onderwerp-landkaart als JSON, `audit.jsonl`, en een self-contained `report.html`
 - **AND** de clustering-parameters en de embedding-bron staan in het manifest

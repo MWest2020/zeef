@@ -150,7 +150,7 @@ def discover(
     near_dup: float | None = typer.Option(None, "--near-dup", help="Cosinus-drempel voor near-duplicates."),
     min_chars: int | None = typer.Option(None, "--min-chars", help="Validity-gate: minimaal aantal leesbare tekens."),
     redaction_ratio: float | None = typer.Option(None, "--redaction-ratio", help="Validity-gate: laksignaal-drempel."),
-    min_cluster_size: int | None = typer.Option(None, "--min-cluster-size", help="Minimale clusteromvang (discover-default 2)."),
+    min_cluster_size: int | None = typer.Option(None, "--min-cluster-size", help="Minimale clusteromvang (discover-default 5)."),
     onderwerp_distance: float | None = typer.Option(None, "--onderwerp-distance", help="Knip-hoogte onderwerp (grof)."),
     deelonderwerp_distance: float | None = typer.Option(None, "--deelonderwerp-distance", help="Knip-hoogte deelonderwerp (fijn)."),
     max_chunks: int | None = typer.Option(None, "--max-chunks", help="Max. chunks per document voor de clustering."),
