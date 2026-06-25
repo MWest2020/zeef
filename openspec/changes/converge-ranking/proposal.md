@@ -75,7 +75,8 @@ navigation *on* the already-fixed selection.
 
 ### Modified Capabilities
 - `select`: top-N fixed by the relevance ranking before any UI interaction; clustering never filters.
-- `retrieve-rerank`: whole-doc cosine is the relevance signal; rerank/LLM-score is not the selector.
+- `retrieve-rerank`: passage (max-chunk) cosine is the relevance signal, set as `final` on every
+  candidate; rerank/LLM-score are side-scores, not the selector.
 - `relate`: dedup on full-text embeddings; representative chosen, rest logged as relations.
 - `scope-filter`: process-role out-of-scope axis, separate from theme.
 - `viewer-ui`: query in the report meta; per-doc relevance score + "why"; top-100 clustered as a menu.
@@ -99,7 +100,13 @@ navigation *on* the already-fixed selection.
   same corpus + query + parameters reproduce the identical top-100. LLM use (criteria, labels,
   rationale) is enrichment only and always leaves a prompt in the audit-log.
 - **Reframes change #2**: the LLM relevance score is no longer the cutoff driver but the
-  per-document "why" on the selected set — flagged for review (see design D14).
+  per-document "why" on the selected set (see design D14).
+- **Apply dependency (hard order)**: this change rewires the `final`-flow and forbids the LLM stage
+  from writing `final` or demoting. It therefore **supersedes** those semantics and **MUST apply
+  before `structured-llm-score`** — otherwise that change re-establishes `final = llm_relevance` +
+  the top-K demotion, reinstating the very recall-gate this change removes. It reframes
+  `structured-llm-score`'s score the same way it reframes change #2. `bm25-reuse` is independent (it
+  scopes selection out explicitly).
 - **Out of scope (this change)**: a cross-encoder precision rerank as the selector; query
   expansion/rewriting; whole-document relevance (recorded as the rejected alternative, see D15); the
   LLM "why" gloss (deterministic anchor now; gloss is a later nice-to-have, D23); OCR/VL paths; the

@@ -12,8 +12,16 @@ defensible, explainable scoring:
   a parseable shape; throwing that away to scrape text is strictly worse where it is available.
 
 The fix is to use structured output where the backend reliably supports it, and keep the regex as
-the explicit fallback for backends that do not. The score semantics (0..1, top-K demotion,
-unparseable → 0.0, never crash) stay exactly as they are.
+the explicit fallback for backends that do not. This change only swaps the **parse path** for the
+LLM score; it does not touch the selection.
+
+> **Apply dependency (hard order):** the `final`/demotion semantics of `score.py` are **superseded
+> by `converge-ranking`**, which makes the deterministic passage cosine the sole selector and demotes
+> the LLM score to a side-score ("why"). This change therefore **MUST apply after `converge-ranking`**.
+> Where this proposal says the score maps to `llm_relevance`/`final` and keeps "top-K demotion" (a
+> snapshot of today's behaviour), read that as the *pre-converge-ranking* state: once
+> `converge-ranking` applies, `score.py` writes only `llm_relevance` + `rationale` and neither writes
+> `final` nor demotes. Do not optimise the number that no longer selects.
 
 ## What Changes
 

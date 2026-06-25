@@ -31,17 +31,17 @@ nails down the invariants.
 
 ## Decisions
 
-### D14 — The selector is a deterministic full-text cosine ranking
-Relevance of a document to the run is `cosine(whole-document full-text embedding, query
-embedding)`, computed once with the sovereign embedding model. Documents are sorted by this score
-and the top-N is cut. This is the **sole** selector.
+### D14 — The selector is a deterministic cosine ranking; change #2 is reframed
+The selector is the deterministic cosine ranking defined in D15 — the cosine of the best-matching
+passage to the query (max over chunk embeddings). Documents are sorted by it and the top-N is cut;
+this is the **sole** selector. (D15 records the representation choice and why whole-document is the
+rejected alternative; D14 only fixes the role of the LLM score.)
 
 This **reframes change #2**: the LLM relevance score and rationale no longer drive the cutoff; they
 become the per-document **"why"** on the already-selected set. Rationale: a jury/auditor must get a
-one-sentence answer ("this document ranks #37 because its full-text embedding is cosine-closest to
-the query among the representatives"), reproducible without an LLM and identical on re-run. The LLM
-remains valuable for explanation, not for deciding membership. *Flagged for review: this changes
-the role of the merged change #2 score — confirm before apply.*
+one-sentence answer ("this document ranks #37 because its best-matching passage is cosine-closest to
+the query"), reproducible without an LLM and identical on re-run. The LLM remains valuable for
+explanation, not for deciding membership.
 
 ### D15 — Document relevance representation: max-chunk (DEFAULT) vs whole-doc (RECORD BOTH)
 Two defensible representations of "how relevant is this document to the query":
@@ -136,12 +136,12 @@ profile, location=local); and, when an LLM produced labels/rationale, the exact 
 location per call. This is what lets a reviewer reconstruct and contest the selection after the fact.
 
 ### D22 — Final-score flow: rewire to close the hidden recall-gate
-Verified in the current code, three stages write `final` and one demotes — so the cosine is *not*
-the selector today: `retrieve.py` records `embed_sim` (max-chunk cosine) but **not** `final`;
-`rerank.py:28` sets `final = rerank`; `score.py:64` sets `final = llm_relevance` for the scored
-top-K and `score.py:72` demotes the rest to `final = 0.0`. The net effect is a recall-gate: only the
-top-K rerank survivors can be selected, and BM25/rerank silently excludes documents before the
-cosine matters — exactly the "miss relevant documents" failure mode.
+Verified in the current code (as of `ede388d`), three stages write `final` and one demotes — so the
+cosine is *not* the selector today: `retrieve()` records `embed_sim` (max-chunk cosine) but **not**
+`final`; `rerank()` sets `final = rerank`; `score()` sets `final = llm_relevance` for the scored
+top-K and demotes the rest to `final = 0.0`. The net effect is a recall-gate: only the top-K rerank
+survivors can be selected, and BM25/rerank silently excludes documents before the cosine matters —
+exactly the "miss relevant documents" failure mode.
 
 The rewire (blast radius across **three** code sites, larger than "MODIFIED retrieve-rerank"):
 - **`retrieve.py`** sets `final = relevance` (the max-chunk cosine, D15) on **every** candidate.

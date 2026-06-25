@@ -32,3 +32,21 @@ clearly-labelled, non-load-bearing gloss; on any conflict the deterministic anch
 - **WHEN** a selected document clusters into the "Overig" theme bucket
 - **THEN** it is still shown in the report as part of the top-N
 - **AND** its theme grouping does not remove it from the selection
+
+### Requirement: Escape untrusted text in the report
+The system SHALL escape **all** untrusted text when rendering the report, rendering it via
+`textContent` (never `innerHTML`/`insertAdjacentHTML`/`document.write`), and SHALL escape the inline
+JSON so content cannot terminate the `<script>` block. The set of untrusted text SHALL explicitly
+include the fields this change adds to the converge report — the **refined query shown in the meta**,
+the **best-matching passage** text, and the **LLM rationale gloss** — in addition to the LLM
+summaries, topic labels and document titles already covered. The converge report does not inherit
+this escaping automatically when its schema is extended; these new fields are document- and
+user-supplied and are a direct injection vector.
+
+#### Scenario: A markup payload in the query or passage is shown as text, not executed
+- **WHEN** the refined query, a best-matching passage, or an LLM rationale contains an HTML/script
+  payload (e.g. `<script>…</script>`)
+- **THEN** the generated report contains the payload only in an escaped form, rendered via
+  `textContent`
+- **AND** the payload does not appear as a live `<script>` tag and does not break out of the inline
+  JSON block

@@ -3,8 +3,8 @@
 ### Requirement: Transparency log for the converge selection
 The system SHALL record, for every converge run, the information needed to reconstruct and contest
 the selection after the fact (the spelregels transparency requirement): the refined query (and any
-additional queries used); how relevance was determined (the cosine-of-whole-document rule and the
-embedding model id); which embedding model ran and where (the profile and `location`, e.g.
+additional queries used); how relevance was determined (the cosine-of-best-matching-passage rule and
+the embedding model id); which embedding model ran and where (the profile and `location`, e.g.
 sovereign/Ollama, `location=local`); and, when an LLM produced topic labels or a per-document
 rationale, the exact prompt, model and location of each such call.
 
