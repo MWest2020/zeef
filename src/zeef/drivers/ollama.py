@@ -13,6 +13,9 @@ nodig is. Elke call gaat naar `http://localhost:11434` (of `ZEEF_OLLAMA_HOST`).
 from __future__ import annotations
 
 import json
+import sys
+import time
+import urllib.error
 import urllib.request
 
 
@@ -49,14 +52,42 @@ class OllamaEmbed:
         self.model = model
         self.name = f"ollama:{model}"
         self._char_budget = char_budget
+        self._dim = 0  # modeldimensie, onthouden zodra één embed lukt (voor uniforme fallback)
 
     def embed(self, texts: list[str]) -> list[list[float]]:
-        out: list[list[float]] = []
+        # Per tekst: clip, dan één retry op een transiënte server-fout (Ollama geeft op een groot
+        # corpus soms een 500 na honderden calls). Faalt het hardnekkig, of geeft het model een lege
+        # embedding (waargenomen bij lege invoer), dan vullen we een nulvector van de modeldimensie —
+        # zo blijven de vectorlengtes uniform (cosine eist dat) en routeert de clustering het
+        # document deterministisch naar "Overig" i.p.v. de hele run te laten crashen. De dimensie
+        # wordt onthouden over calls heen (`self._dim`), zodat ook een volledig mislukte batch
+        # uniforme nulvectoren geeft zolang ergens eerder één embed lukte. Pas als nog nóóit één
+        # embed lukte is de dimensie onbekend en geven we een lege vector (lengte 0, óók uniform).
+        raw: list[list[float] | None] = []
         for text in texts:
-            clipped = text[: self._char_budget]
-            res = self._client._post("/api/embeddings", {"model": self.model, "prompt": clipped})
-            out.append([float(x) for x in res["embedding"]])
-        return out
+            clipped = text[: self._char_budget].strip()
+            vec = self._embed_one(clipped) if clipped else None
+            if vec:
+                self._dim = len(vec)
+            raw.append(vec)
+        return [v if v else [0.0] * self._dim for v in raw]
+
+    def _embed_one(self, prompt: str) -> list[float] | None:
+        for attempt in (1, 2):
+            try:
+                res = self._client._post(
+                    "/api/embeddings", {"model": self.model, "prompt": prompt}
+                )
+                emb = res.get("embedding") or []
+                return [float(x) for x in emb] if emb else None
+            except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+                if attempt == 1:
+                    time.sleep(0.5)
+                    continue
+                print(f"ollama-embed: {exc} na retry — nulvector-fallback (→ Overig)",
+                      file=sys.stderr)
+                return None
+        return None
 
 
 class OllamaLLM:

@@ -27,6 +27,48 @@ determinisme behouden, publieke contracten ongemoeid, fallback intact.
 serieel (eerst `bm25-reuse`, valideren + sovereign smoke-run + archiveren, dán
 `structured-llm-score`) op expliciete go.
 
+### 2026-06-25 — fix: discover demo-defaults + Ollama-robuustheid (gevalideerd op 1,7 GB Woo-corpus)
+
+Discover-defaults gekalibreerd op een echt corpus (zie `lessons_learned.md`): `onderwerp_distance=0.50`,
+`deelonderwerp_distance=0.42`, `min_cluster_size=5`, chunk-cap 6 (cap 3 = smoke-fidelity); plus
+Ollama-driver-hardening (retry + nulvector-fallback), instelbare `ZEEF_OLLAMA_EMBED_CHARS` en een
+chunk-cap bij het embedden — zodat een volledige discover-run op honderden PDF's niet crasht of urenlang draait.
+
+### 2026-06-24 — feat: discover-mode — query-loze onderwerp-landkaart over het volledige corpus
+
+**Waarom:** zeefs hele pijplijn hangt aan een query (`articulate_criteria` → retrieve → … filtert
+tégen die query). Er was geen modus die een ongezien corpus inneemt en terúggeeft wát erin zit —
+de kern van de beoogde use-case (toon de onderwerpen, dán kiest de gebruiker). Ontdekking komt vóór
+de facet-selectie.
+
+**Wat (change `discover-mode`):**
+- `pipeline/discover.py` (nieuw) — `run_discover`: `ingest` → `validity` → `relate` (dedup) →
+  **embed** → `cluster_topics` → per-cluster samenvatting. De query-gedreven stages (criteria/
+  retrieve/rerank/score/select) worden overgeslagen. `cluster_topics` krijgt het volledige valide,
+  gededupliceerde corpus i.p.v. `selected` — **hergebruik, geen tweede clustering**. (Eigen module
+  i.p.v. in `run.py` puur vanwege de ≤200-regelgrens.)
+- `pipeline/retrieve.py` — `embed_chunks`: chunkt + embeddt het corpus en bewáárt de chunks op de
+  documenten, zodat de query-loze route echte chunk-embeddings heeft (en de `max_chunks_per_doc`-cap
+  werkt) zonder per-document lazy te herembedden.
+- `pipeline/summarise.py` — `summarise_cluster`: één samenvatting per cluster op de representatieve
+  leden (medoid-eerst), i.p.v. één call per document — kosten begrensd. Onder `--no-llm`: geen
+  samenvatting, geen call.
+- `export.py` — `write_discover_map` (`discover-map.json`) + `write_discover_report` (self-contained
+  `report.html`, eigen `templates/discover_report.html`); gedeelde `_inject_json_html`-helper
+  (`<`/`>`/`&`-escaping, textContent-rendering — zelfde discipline als de converge-viewer).
+- `cli.py` — `zeef discover <docs>` met profiel-/`--no-llm`-/`--subscription`-vlaggen en clustering-
+  opties (discover-passende `min_cluster_size`-default 5). Manifest legt clustering-parameters +
+  **embedding-bron** vast.
+
+**Uit scope (latere change):** de tweede trap — een ontdekt onderwerp als query aan `converge` geven
+voor een top-n. Deze change levert uitsluitend de ontdekking (trap één).
+
+**Tests:** `test_discover.py` — geneste landkaart zónder query-gedreven stages, determinisme, `--no-llm`
+(TF-IDF, geen samenvatting, geen call), per-cluster samenvatting op representanten (niet per document,
+call-telling), manifest met parameters + embedding-bron, en een offline self-contained `report.html`.
+`openspec validate discover-mode --strict` ✓. `pytest` mét cloud 114/1, zónder cloud 111/4 (schone
+collectie). `ruff` schoon; alle bronbestanden ≤200 regels.
+
 ### 2026-06-24 — feat: viewer-ui — self-contained, offline `report.html` + `excluded.json`
 
 **Waarom:** de criteria eisen dat het resultaat controleerbaar is — **zowel de geselecteerde ~100

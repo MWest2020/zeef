@@ -46,6 +46,11 @@ DEFAULT_ONDERWERP_DISTANCE = 0.8
 DEFAULT_DEELONDERWERP_DISTANCE = 0.5
 DEFAULT_MIN_CLUSTER_SIZE = 3
 DEFAULT_MAX_CHUNKS_PER_DOC = 40
+# Discover-defaults voor een vol corpus (400+), gekalibreerd op qwen3-embedding (zie
+# lessons_learned.md); de converge-defaults 0.8/0.5 knippen daar alles in één cluster.
+DEFAULT_DISCOVER_ONDERWERP_DISTANCE = 0.50
+DEFAULT_DISCOVER_DEELONDERWERP_DISTANCE = 0.42
+DEFAULT_DISCOVER_MIN_CLUSTER_SIZE = 5
 
 
 @dataclass(frozen=True)

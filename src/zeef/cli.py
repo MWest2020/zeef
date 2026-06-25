@@ -18,6 +18,7 @@ from rich.table import Table
 from zeef import __version__
 from zeef.audit import AuditLog
 from zeef.config import CutoffMode, ProfileName, Settings
+from zeef.pipeline.discover import run_discover
 from zeef.pipeline.run import run_converge
 from zeef.profiles import resolve_providers
 
@@ -138,6 +139,54 @@ def _summary(result, mode: CutoffMode, value) -> None:
                       "(per-stage in run-manifest.json)")
     console.print(f"uitvoer in [blue]{result.out_dir}[/]: inventory.xlsx, relations.json, "
                   "criteria.json, topics.json, run-manifest.json, audit.jsonl")
+
+
+@app.command()
+def discover(
+    docs: Path = typer.Argument(..., exists=True, file_okay=False, help="Map met documenten."),
+    profile: ProfileName = typer.Option(ProfileName.sovereign, "--profile"),
+    no_llm: bool = typer.Option(False, "--no-llm", help="TF-IDF-labels, geen samenvattingen, geen model-call."),
+    subscription: bool = typer.Option(False, "--subscription", help="Claude-abonnement (OAuth) i.p.v. API-key; impliceert cloud-LLM."),
+    near_dup: float | None = typer.Option(None, "--near-dup", help="Cosinus-drempel voor near-duplicates."),
+    min_chars: int | None = typer.Option(None, "--min-chars", help="Validity-gate: minimaal aantal leesbare tekens."),
+    redaction_ratio: float | None = typer.Option(None, "--redaction-ratio", help="Validity-gate: laksignaal-drempel."),
+    min_cluster_size: int | None = typer.Option(None, "--min-cluster-size", help="Minimale clusteromvang (discover-default 5)."),
+    onderwerp_distance: float | None = typer.Option(None, "--onderwerp-distance", help="Knip-hoogte onderwerp (grof)."),
+    deelonderwerp_distance: float | None = typer.Option(None, "--deelonderwerp-distance", help="Knip-hoogte deelonderwerp (fijn)."),
+    max_chunks: int | None = typer.Option(None, "--max-chunks", help="Max. chunks per document voor de clustering."),
+    out: Path | None = typer.Option(None, "--out", help="Uitvoermap voor deze run."),
+) -> None:
+    """Ontdek query-loos wat er in `docs` zit: de onderwerp/deelonderwerp-landkaart."""
+    out_dir = out if out is not None else _default_out()
+    settings = Settings()
+    if subscription:
+        settings.auth_mode, settings.llm_backend = "subscription", "cloud"
+    providers = resolve_providers(profile, no_llm, settings)
+    audit = AuditLog(out_dir / "audit.jsonl")
+    audit.event("cli", "discover-start", inputs={
+        "docs": str(docs), "profile": profile.value, "no_llm": no_llm, "auth_mode": settings.auth_mode})
+    console.print(f"[bold]zeef {__version__}[/] — discover · profiel [cyan]{profile.value}[/]"
+                  f"{' [yellow](--no-llm)[/]' if no_llm else ''}"
+                  f"{' [magenta](abonnement)[/]' if subscription else ''}")
+    # Clustering-afstanden, min-cluster-size én chunk-cap: laat run_discover zijn discover-defaults
+    # toepassen (gekalibreerd op een vol corpus); geef alleen mee wat de CLI expliciet zet.
+    extra = {k: v for k, v in (("min_cluster_size", min_cluster_size),
+                               ("onderwerp_distance", onderwerp_distance),
+                               ("deelonderwerp_distance", deelonderwerp_distance),
+                               ("max_chunks_per_doc", max_chunks)) if v is not None}
+    result = run_discover(
+        docs, providers, out_dir, audit,
+        validity_min_chars=settings.validity_min_chars if min_chars is None else min_chars,
+        redaction_ratio_threshold=settings.redaction_ratio_threshold if redaction_ratio is None else redaction_ratio,
+        near_dup_threshold=settings.near_dup_threshold if near_dup is None else near_dup,
+        summary_max_words=settings.summary_max_words,
+        progress=lambda s: console.print(f"  [dim]→[/] {s}"), **extra)
+    counts = result.counts()
+    console.print(f"ontdekt: [cyan]{counts['onderwerpen']}[/] onderwerpen · "
+                  f"[cyan]{counts['deelonderwerpen']}[/] deelonderwerpen · "
+                  f"[cyan]{counts['documents']}[/] documenten")
+    console.print(f"uitvoer in [blue]{result.out_dir}[/]: discover-map.json, report.html, "
+                  "run-manifest.json, audit.jsonl")
 
 
 @app.command()

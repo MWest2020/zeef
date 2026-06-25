@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     ollama_host: str = "http://localhost:11434"
     ollama_llm_model: str = "qwen3"
     ollama_embed_model: str = "qwen3-embedding"
+    # Max. tekens die we vóór het embedden afkappen (Ollama-embeds schalen ~lineair met lengte;
+    # op CPU kost een 8000-char-embed ~8 s, een 2000-char-embed ~2 s). De near-dup-embed van de
+    # volledige tekst is de duurste call op een groot corpus; het dedup-/relevantiesignaal zit in de
+    # leidende inhoud. Default 8000 (gedrag onveranderd); verlaag voor doorvoer op echte Woo-PDF's.
+    ollama_embed_chars: int = 8000
     # Welke embedding het sovereign-profiel gebruikt: "local" (deterministisch, air-gapped
     # default) of "ollama" (modelgebaseerd via een lokale server). Reranker blijft lokaal:
     # Ollama heeft geen rerank-endpoint.
