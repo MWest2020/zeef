@@ -5,8 +5,8 @@ relevant?*. Sluit mechanisch-onbruikbare documenten uit (mislukte parse, leeg-na
 machine-onderscheidbare `validity:`-reden, en behoudt zwaar-gelakte-maar-leesbare documenten
 (design V3). Volledig deterministisch: geen LLM, identiek onder `--no-llm` en air-gapped.
 
-Niet hier: exacte/near-duplicaten — die worden al deterministisch afgehandeld in relate +
-scope-filter (`rule_duplicate`); de gate dupliceert dat pad niet (design V2).
+Niet hier: exacte/near-duplicaten — die worden deterministisch gedetecteerd in relate en pas ná
+de ranking gecollapst in select (converge-ranking D16); de gate dupliceert dat pad niet (design V2).
 """
 
 from __future__ import annotations

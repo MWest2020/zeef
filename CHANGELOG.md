@@ -6,6 +6,42 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-26 — feat(converge): passage-cosine als enige selector — verborgen recall-gate eruit
+
+**Waarom:** de selectie-signaal was een meertraps, deels-LLM-score geworden (`rerank.py` en
+`score.py` overschreven `final`; `score.py` demoveerde alles buiten de top-K naar `final=0.0`).
+Dat is een **verborgen recall-gate**: alleen de rerank/LLM-overlevenden konden geselecteerd worden,
+en BM25/rerank sloot documenten uit vóór de relevantie telde — precies de "mis relevante documenten"-
+faalmodus. De top-100 was niet in één zin te verdedigen. Implementatie van OpenSpec change
+`converge-ranking`.
+
+**Wat (selectie-semantiek verandert opzettelijk — geen regressie, maar een bewuste herarchitectuur):**
+- **De passage-cosine is de enige, auditbare selector.** `retrieve.py` zet `final = max cosine van
+  de chunk-embeddings t.o.v. de zoekvraag` (de best-matchende passage) op **élke** kandidaat, ook
+  onder `--no-llm`. Eén zin: *"cosine van de best-matchende passage t.o.v. de zoekvraag."*
+- **Recall-gate weg.** `rerank.py` schrijft `final` niet meer (`rerank` blijft een side-score ter
+  inspectie); `score.py` schrijft `final` niet en demoveert niemand meer — `llm_relevance` + de
+  motivatie zijn transparantie/"why", nooit een filter.
+- **Duplicaat-collapse verhuist naar `select`, ná de ranking.** `scope_rules.rule_duplicate` is
+  verwijderd (collapse vóór ranking = recall-gate, D20.5). De volledige set (incl. duplicaten) wordt
+  op `final` gerangschikt; binnen elke `duplicate-of`-groep wordt de **hoogst gerangschikte** de
+  representant (tie-break: laagste bronpad, query-onafhankelijk), de rest `out_of_scope` met gelogde
+  reden + behouden relatie. De top-N telt representanten.
+- **Deterministische "why".** Elk geselecteerd document draagt de best-matchende passage
+  (`best_passage`) + de overlappende querytermen (`similarity.term_overlap`); het rapport toont die
+  als dragende toelichting en de LLM-motivatie alleen als gelabelde, indicatieve gloss (D23).
+- **Auditbaarheid.** `retrieve` logt de relevantie-regel (`method=max-cosine-best-passage`) +
+  embedding-model/locatie; LLM-prompts blijven gelogd.
+
+**Bestanden:** `pipeline/retrieve.py`, `pipeline/rerank.py`, `pipeline/score.py`, `pipeline/select.py`,
+`pipeline/scope_rules.py`, `pipeline/validity.py` (comment), `export.py`, `similarity.py` (nieuw
+`term_overlap`), `models.py` (`best_passage`), `templates/report.html`.
+
+**Tests:** nieuw `tests/test_converge_ranking.py` (7 invarianten: geen recall-gate, collapse-na-
+ranking + query-onafhankelijke tiebreak, max-chunk, cluster filtert niet, determinisme, report-why);
+`tests/test_score.py` + `tests/test_scope_filter.py` herschreven naar het nieuwe contract. Volledige
+suite **142 passed, 1 skipped**; ruff schoon.
+
 ### 2026-06-25 — feat(cloud): Voyage transport-hardening (branch `change/voyage-transport-hardening`, NIET op main)
 
 **Waarom:** de cloud-drivers waren niet productiegehard (`drivers/cloud.py`: "niet live getest")

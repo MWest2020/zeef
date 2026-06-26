@@ -16,6 +16,9 @@ from openpyxl import Workbook
 
 from zeef.models import Criteria, Document
 from zeef.pipeline.validity import REDACTION_META_KEY
+from zeef.similarity import term_overlap
+
+_PASSAGE_SNIPPET = 400  # lengte van de getoonde best-matchende passage (de "why", D23)
 
 # Single-file HTML-templates + de marker waar de inline run-data in wordt geïnjecteerd.
 _REPORT_TEMPLATE = Path(__file__).parent / "templates" / "report.html"
@@ -136,14 +139,17 @@ def write_excluded(docs: list[Document], path: Path) -> Path:
 
 def build_report_data(query: str, generated_at: str, selected: list[Document], topics: dict,
                       all_docs: list[Document]) -> dict:
-    """Bouw het presentatie-model voor het rapport — alléén presentatievelden (geen documenttekst).
-    Redactie-status komt uit de canonieke `REDACTION_META_KEY`, niet uit `decision_reason`."""
+    """Presentatie-model voor het rapport. Elk document draagt de deterministische "why"
+    (converge-ranking D23): snippet van de best-matchende passage + overlappende querytermen
+    (reproduceerbaar, zónder LLM). Redactie-status uit de canonieke `REDACTION_META_KEY`."""
     documents = {
         d.id: {
             "id": d.id, "name": _doc_name(d), "score": round(d.scores.get("final", 0.0), 4),
             "rationale": d.rationale, "summary": str(d.metadata.get("summary", "")),
             "reason": d.decision_reason, "doc_type": d.doc_type,
             "topic": d.topic, "subtopic": d.subtopic,
+            "why_passage": d.best_passage[:_PASSAGE_SNIPPET],
+            "why_terms": term_overlap(query, d.best_passage),
             "redaction": str(d.metadata.get(REDACTION_META_KEY, "")),
             "relations": [{"kind": r.kind, "target": r.target_id, "evidence": r.evidence}
                           for r in d.relations],

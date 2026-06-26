@@ -1,8 +1,13 @@
-"""Retrieve-stage (retrieve-spec): chunk → embed → eerste-pass score t.o.v. de zoekvraag.
+"""Retrieve-stage (retrieve-spec, converge-ranking D15/D22): chunk → embed → relevantie t.o.v. de
+zoekvraag.
 
 Kandidaten zijn alle niet-uitgesloten documenten met tekst. Elk wordt gechunkt en geëmbed;
-de eerste-pass gelijkenis (`embed_sim`) is de hoogste cosinus tussen de zoekvraag en de
-chunks. Optioneel wordt een lexicale BM25-achtige score bijgemengd (`hybrid_alpha`); default 0
+de relevantie (`embed_sim`) is de hoogste cosinus tussen de zoekvraag en de chunks — de
+cosine van de best-matchende passage. Die score wordt **als `final` op elke kandidaat** gezet:
+het is de enige, auditbare selector (converge-ranking). Geen latere stage (rerank/score)
+overschrijft `final` of demoveert een kandidaat — de cosine rangschikt de volledige set.
+De best-matchende chunk wordt als `best_passage` bewaard: de deterministische "why" (D23).
+Optioneel wordt een lexicale BM25-achtige score bijgemengd (`hybrid_alpha`); default 0
 houdt het zuiver vectorieel en volledig deterministisch.
 """
 
@@ -70,15 +75,24 @@ def retrieve(
         vecs = embed.embed([c.text for c in chunks])
         for chunk, vec in zip(chunks, vecs):
             chunk.embedding = vec
-        sim = max((cosine(query_vec, vec) for vec in vecs), default=0.0)
+        sims = [cosine(query_vec, vec) for vec in vecs]
+        sim = max(sims, default=0.0)
+        if sims:
+            # De best-matchende passage = de chunk met de hoogste cosine (ties → laagste ordinal,
+            # deterministisch). Bewaard als de deterministische "why" (D23).
+            best = max(range(len(sims)), key=lambda i: sims[i])
+            doc.best_passage = chunks[best].text
         if hybrid_alpha > 0.0:
             sim = _hybrid(sim, query, doc, hybrid_alpha, candidates)
         doc.scores["embed_sim"] = round(sim, 6)
+        # De cosine is de selector: zet 'm als `final` op élke kandidaat (converge-ranking D22).
+        doc.scores["final"] = round(sim, 6)
     audit.event(STAGE, "embed", model=model, location=location,
                 inputs={"query": query, "candidates": len(candidates),
                         "chunk_size": chunk_size})
-    audit.event(STAGE, "first-pass", inputs={
+    audit.event(STAGE, "first-pass", model=model, location=location, inputs={
         "query": query, "hybrid_alpha": hybrid_alpha,
+        "method": "max-cosine-best-passage",  # de relevantie-regel (D21): de enige selector
         "ranked": [d.id for d in sorted(candidates, key=_embed_sim, reverse=True)],
     })
     return candidates

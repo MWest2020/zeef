@@ -49,12 +49,14 @@ def test_thread_tail_excluded_tip_kept(corpus, audit):
     assert by_name["thread-05.eml"].decision == "undecided"  # tip blijft staan
 
 
-def test_duplicate_excluded_with_reason(corpus, audit):
+def test_duplicates_are_not_excluded_by_scope_filter(corpus, audit):
+    # Inhoud-duplicaten worden NIET meer vóór de ranking uitgesloten (converge-ranking D20.5: geen
+    # verborgen recall-gate). De collapse gebeurt in `select`, ná de cosine-ranking — zie
+    # test_select / test_e2e. Hier blijven beide duplicaten dus undecided na de scope-filter.
     docs, by_name = _prepared(corpus, audit)
-    scope_filter(docs, _bundle(), audit, query="x")
-    assert by_name["dup-b.eml"].decision == "out_of_scope"
-    assert "duplicate" in by_name["dup-b.eml"].decision_reason
+    scope_filter(docs, _bundle(no_llm=True), audit, query="x")
     assert by_name["dup-a.eml"].decision == "undecided"
+    assert by_name["dup-b.eml"].decision == "undecided"
 
 
 def test_every_exclusion_has_nonempty_reason(corpus, audit):

@@ -18,6 +18,13 @@ def tokenize(text: str) -> list[str]:
     return _TOKEN_RE.findall(text.lower())
 
 
+def term_overlap(query: str, text: str) -> list[str]:
+    """Querytermen die in `text` voorkomen (queryvolgorde, gededupliceerd) — het deterministische,
+    reproduceerbare deel van de relevantie-"why" (converge-ranking D23)."""
+    in_text = set(tokenize(text))
+    return list(dict.fromkeys(t for t in tokenize(query) if t in in_text))
+
+
 def l2_normalize(vec: list[float]) -> list[float]:
     """Normaliseer naar lengte 1 (lege/0-vector blijft ongewijzigd)."""
     norm = math.sqrt(sum(x * x for x in vec))

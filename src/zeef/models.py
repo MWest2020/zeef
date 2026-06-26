@@ -61,6 +61,8 @@ class Document(BaseModel):
     decision: Decision = "undecided"
     decision_reason: str = ""
     rationale: str = ""  # per-document relevantie-motivatie (LLM); los van decision_reason
+    best_passage: str = ""  # de chunk met de hoogste cosine t.o.v. de zoekvraag — de
+    # deterministische "why" (converge-ranking D23); leeg vóór de retrieve-stage
     topic: str = ""  # onderwerp-label uit topic-clustering (deelonderwerp-menu); leeg vóór die stage
     subtopic: str = ""  # deelonderwerp-label, genest binnen `topic`
 

@@ -96,8 +96,14 @@
     if (doc.redaction) sm.appendChild(el("span", "gelakt", "badge redaction"));
     wrap.appendChild(sm);
     var body = el("div", null, "docbody");
+    // Deterministische "why" (converge-ranking D23): de best-matchende passage + de querytermen
+    // die erin voorkomen. Reproduceerbaar zonder LLM; dit is de dragende toelichting.
+    if (doc.why_passage) body.appendChild(field("Best-matchende passage", doc.why_passage));
+    if (doc.why_terms && doc.why_terms.length)
+      body.appendChild(field("Overlappende querytermen", doc.why_terms.join(", ")));
     if (doc.summary) body.appendChild(field("Samenvatting", doc.summary));
-    if (doc.rationale) body.appendChild(field("Motivatie", doc.rationale));
+    // De LLM-motivatie is een gelabelde, niet-dragende gloss: bij conflict wint de passage hierboven.
+    if (doc.rationale) body.appendChild(field("Motivatie (LLM-toelichting, indicatief)", doc.rationale));
     if (doc.reason) body.appendChild(field("Reden", doc.reason));
     if (doc.redaction) body.appendChild(field("Status", doc.redaction));
     var rels = doc.relations || [];

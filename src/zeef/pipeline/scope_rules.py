@@ -71,11 +71,11 @@ def rule_thread_tail(doc: Document) -> str | None:
     return f"eerdere mail, vertegenwoordigd door thread-head {tip} (regel: thread-tail)"
 
 
-def rule_duplicate(doc: Document) -> str | None:
-    for rel in doc.relations:
-        if rel.kind == "duplicate-of":
-            return f"duplicaat van {rel.target_id} (regel: duplicate)"
-    return None
+# Let op: er is bewust GÉÉN `rule_duplicate` meer. Inhoud-duplicaten (`duplicate-of`, gelegd door
+# `relate`) mogen niet vóór de ranking worden uitgesloten — dat zou een verborgen recall-gate zijn
+# (converge-ranking invariant D20.5). De collapse van een duplicaatgroep gebeurt in `select`, ná de
+# cosine-ranking, met de hoogst gerangschikte als representant (D16). De thread-tail-regel hieronder
+# dekt nog wél de procesrol "eerdere mail, al vertegenwoordigd door de thread-head".
 
 
 # Geordende regelset — de volgorde bepaalt welke reden een document krijgt.
@@ -84,5 +84,4 @@ RULES = (
     ("calendar-invite", rule_calendar_invite),
     ("process-notification", rule_process_notification),
     ("thread-tail", rule_thread_tail),
-    ("duplicate", rule_duplicate),
 )

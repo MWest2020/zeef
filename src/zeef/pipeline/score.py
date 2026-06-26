@@ -1,10 +1,11 @@
-"""LLM-relevantiescoring (retrieve-rerank-spec, design.md D11/D12): het 'eind'-LLM-touchpoint.
+"""LLM-relevantiescoring (retrieve-rerank-spec, converge-ranking D14/D22/D23): het 'eind'-LLM-touchpoint.
 
-De deterministische rerank ordent de kandidaten en dient hier als goedkope voor-trim: alleen
-de top-K gaat naar de LLM, die elk document scoort tegen de gearticuleerde criteria (0–100 →
-`llm_relevance`) én een korte motivatie geeft. De relevantiescore wordt de `final`-score die de
-selectie drijft; kandidaten buiten de top-K worden expliciet gedemoveerd (niet stil gedropt).
-Onder `--no-llm` slaat de stage volledig over en blijft `final` de rerank-score (change #1).
+De passage-cosine (`final`, gezet in retrieve) is de selector. Deze stage voegt **alleen een
+side-score + motivatie** toe: de top-K kandidaten op `final` gaan naar de LLM, die elk document
+scoort tegen de gearticuleerde criteria (0–100 → `llm_relevance`) én een korte motivatie geeft.
+De score raakt `final` **niet** aan en demoveert **niemand** (geen recall-gate): `llm_relevance`
+en de motivatie zijn transparantie/"why", nooit een filter op wat geselecteerd kan worden.
+Onder `--no-llm` slaat de stage volledig over; `final` blijft de cosine voor elke kandidaat.
 """
 
 from __future__ import annotations
@@ -44,35 +45,34 @@ def score(
     candidates: list[Document], criteria: Criteria, providers: ProviderBundle,
     audit: AuditLog, query: str, *, top_k: int = 0,
 ) -> list[Document]:
-    """Scoor de top-K reranked kandidaten met de LLM; demoveer de rest. Skip onder `--no-llm`."""
+    """Scoor de top-K kandidaten (op `final`/cosine) met de LLM als side-score + motivatie. Geen
+    demotion, `final` blijft de cosine. Skip onder `--no-llm`."""
     if providers.no_llm or not candidates:
         audit.event(STAGE, "skipped", inputs={
-            "reason": "--no-llm: final blijft de rerank-score" if providers.no_llm
+            "reason": "--no-llm: final blijft de passage-cosine" if providers.no_llm
             else "geen kandidaten",
             "candidates": len(candidates),
         })
         return candidates
 
-    to_score = candidates if top_k <= 0 else candidates[:top_k]
-    demoted = candidates[len(to_score):]
+    # Kies de top-K op de cosine-selector (`final`), niet op de rerank-volgorde: we lichten de
+    # meest relevante kandidaten toe met een motivatie. Tie-break op id voor determinisme.
+    ordered = sorted(candidates, key=lambda d: (-d.scores.get("final", 0.0), d.id))
+    to_score = ordered if top_k <= 0 else ordered[:top_k]
     llm = providers.llm
     for doc in to_score:
         prompt = _prompt(criteria, doc)
         answer = llm.complete(prompt, system=_SYSTEM)
         relevance, rationale = _parse(answer)
         doc.scores["llm_relevance"] = round(relevance, 6)
-        doc.scores["final"] = round(relevance, 6)
         doc.rationale = rationale
         audit.event(
             STAGE, "llm-score", document_ids=[doc.id],
             model=getattr(llm, "name", "?"), location=getattr(llm, "location", "?"),
             prompt=prompt, inputs={"relevance": round(relevance, 6), "rationale": rationale[:120]},
         )
-    for doc in demoted:
-        doc.scores["final"] = 0.0
-        doc.rationale = "niet door LLM gescoord; buiten top-K rerank"
     audit.event(STAGE, "score-complete", inputs={
-        "query": query, "top_k": top_k, "scored": len(to_score), "demoted": len(demoted),
+        "query": query, "top_k": top_k, "scored": len(to_score), "candidates": len(candidates),
     })
     return candidates
 
