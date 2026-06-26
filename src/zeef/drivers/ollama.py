@@ -122,3 +122,27 @@ class OllamaLLM:
             payload["system"] = system
         res = self._client._post("/api/generate", payload)
         return res.get("response", "")
+
+    def complete_json(
+        self, prompt: str, schema: dict, *, system: str | None = None
+    ) -> dict | None:
+        """Structured output via Ollama's `format` (JSON-schema) op `/api/generate`. Geeft het
+        geparste object terug, of `None` bij ongeldige/lege JSON (→ regex-fallback in score.py).
+        `num_predict` krijgt een ruimere ondergrens zodat een korte motivatie-zin niet wordt
+        afgekapt midden in de JSON."""
+        payload: dict = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False,
+            "think": self.think,
+            "format": schema,
+            "options": {"temperature": 0, "num_predict": max(self.num_predict, 256)},
+        }
+        if system is not None:
+            payload["system"] = system
+        res = self._client._post("/api/generate", payload)
+        try:
+            obj = json.loads(res.get("response", ""))
+        except (json.JSONDecodeError, TypeError):
+            return None
+        return obj if isinstance(obj, dict) else None

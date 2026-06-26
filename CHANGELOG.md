@@ -6,6 +6,35 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-26 — feat(score): gestructureerde LLM-output met regex-fallback (structured-llm-score)
+
+**Waarom:** `pipeline/score.py` schraapte de relevantiescore + motivatie uit vrije tekst met regex
+(`_SCORE_RE`/`_MOTIVE_RE`). Brittle op precies de as die de methode verkoopt — verdedigbare,
+verklaarbare scoring: een model dat het getal anders formuleert valt terug op score-0. Backends die
+gestructureerde output kunnen garanderen (Claude tool-use, Ollama `format`) gooien dat weg door tekst
+te scrapen. Implementatie van OpenSpec change `structured-llm-score`.
+
+**Wat (alleen het parse-pad verandert; selectie ongemoeid — `final` blijft de cosine):**
+- **Expliciete capability i.p.v. `hasattr`.** Nieuw `runtime_checkable StructuredLLMProvider`-protocol
+  (`protocols.py`): `complete_json(prompt, schema, *, system) -> dict | None`. `LLMProvider` blijft
+  ongemoeid; `NullLLM` vervult het protocol niet en wordt onder `--no-llm` nooit bereikt.
+- **Drie tiers (D-DEGRADE), nooit slechter dan vandaag.** `score.py` vertakt op
+  `isinstance(llm, StructuredLLMProvider)`: structured → bij ongeldig/`None`/exceptie regex via
+  `complete()` → bij geen score score-0 met de ruwe tekst. De clamp 0..100 → 0..1 is identiek per pad.
+- **Drivers.** `OllamaLLM.complete_json` via `format`-schema op `/api/generate` (ruimere
+  `num_predict` zodat de JSON niet afkapt); `ClaudeLLM.complete_json` via geforceerde tool-use met het
+  schema als `input_schema` (`_client()`-helper geëxtraheerd; niet live getest — Q3).
+- **Auditbaarheid (D-AUDIT).** Het JSON-pad logt naast `prompt`/`model`/`location` óók `route`,
+  `schema` en `raw_structured`, zodat het minstens zo navolgbaar is als de regex-tekst.
+
+**Bestanden:** `protocols.py` (`StructuredLLMProvider`), `pipeline/score.py` (drie-tier `_judge`,
+`_SCHEMA`, `_json_prompt`), `drivers/ollama.py`, `drivers/cloud.py`.
+
+**Tests:** nieuw `tests/test_structured_score.py` (protocol-onderscheid, structured-pad +
+schema/raw-audit, fallback bij None/ongeldig/exceptie, beide paden onparseerbaar → 0.0). Suite
+**148 passed, 1 skipped**; ruff schoon. Sovereign smoke met echte Ollama niet uitgevoerd (geen
+draaiend model) — de fallback-paden zijn met fakes gedekt.
+
 ### 2026-06-26 — feat(converge): passage-cosine als enige selector — verborgen recall-gate eruit
 
 **Waarom:** de selectie-signaal was een meertraps, deels-LLM-score geworden (`rerank.py` en

@@ -65,14 +65,16 @@ class ClaudeLLM:
         else:
             self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
 
-    def complete(self, prompt: str, *, system: str | None = None) -> str:
+    def _client(self):
         from anthropic import Anthropic  # lazy: cloud-extra hoeft niet in sovereign-runs
 
         if self._auth_mode == "subscription":
-            client = Anthropic(default_headers={"anthropic-beta": _OAUTH_BETA})
-        else:
-            key = _require(self._api_key, "ANTHROPIC_API_KEY")
-            client = Anthropic(api_key=key)
+            return Anthropic(default_headers={"anthropic-beta": _OAUTH_BETA})
+        key = _require(self._api_key, "ANTHROPIC_API_KEY")
+        return Anthropic(api_key=key)
+
+    def complete(self, prompt: str, *, system: str | None = None) -> str:
+        client = self._client()
         kwargs: dict = {"model": self.model, "max_tokens": 1024, "temperature": 0,
                         "messages": [{"role": "user", "content": prompt}]}
         if system is not None:
@@ -80,6 +82,29 @@ class ClaudeLLM:
         resp = client.messages.create(**kwargs)
         self._log_usage(resp)
         return "".join(block.text for block in resp.content if block.type == "text")
+
+    def complete_json(
+        self, prompt: str, schema: dict, *, system: str | None = None
+    ) -> dict | None:
+        """Structured output via geforceerde tool-use: het schema gaat als `input_schema` mee en het
+        model móet de tool aanroepen (temperatuur 0). Geeft de tool-input (een dict) terug, of `None`
+        als er geen tool_use-block in het antwoord zit (→ regex-fallback in score.py). Niet live
+        getest (geen keys); structureel bedraad (structured-llm-score D-SCHEMA, open vraag Q3)."""
+        client = self._client()
+        tool = {"name": "relevantie", "description": "Geef de relevantiescore en motivatie.",
+                "input_schema": schema}
+        kwargs: dict = {"model": self.model, "max_tokens": 1024, "temperature": 0,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "tools": [tool], "tool_choice": {"type": "tool", "name": "relevantie"}}
+        if system is not None:
+            kwargs["system"] = system
+        resp = client.messages.create(**kwargs)
+        self._log_usage(resp)
+        for block in resp.content:
+            if getattr(block, "type", None) == "tool_use":
+                inp = block.input
+                return inp if isinstance(inp, dict) else None
+        return None
 
     def _log_usage(self, resp: object) -> None:
         """Append-only tokengebruik per call (voor kostenraming). Nooit de sleutel loggen."""

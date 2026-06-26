@@ -44,3 +44,20 @@ class LLMProvider(Protocol):
     location: str  # "local" | "cloud" — wordt in de audit-log vastgelegd
 
     def complete(self, prompt: str, *, system: str | None = None) -> str: ...
+
+
+@runtime_checkable
+class StructuredLLMProvider(Protocol):
+    """Optionele, additieve capability bovenop `LLMProvider`: gegarandeerd-parseerbare JSON tegen een
+    vast schema (Claude tool-use, Ollama `format`). `score.py` neemt het structured-pad alleen voor
+    backends die dit protocol vervullen; de rest valt terug op de regex-parse (structured-llm-score
+    D-CAPABILITY). `complete_json` geeft `None` (of werpt, opgevangen door de aanroeper) wanneer geen
+    geldig object kan worden geproduceerd — het 'val-terug'-signaal, los van een geldige `{score: 0}`.
+    `LLMProvider` blijft ongemoeid; bestaande providers (en `NullLLM`) blijven geldig zonder dit."""
+
+    name: str
+    location: str
+
+    def complete_json(
+        self, prompt: str, schema: dict, *, system: str | None = None
+    ) -> dict | None: ...
