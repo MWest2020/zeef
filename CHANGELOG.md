@@ -6,6 +6,19 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-26 — docs(bm25-reuse): D-EPSILON-bevinding vastgelegd — voorstel OPEN, niet toepassen
+
+**Waarom:** vóór implementatie de aanname "drop-in no-op op het contract" getoetst tegen de echte
+`rank_bm25==0.2.2`-broncode en edge-cases.
+
+**Wat:** onderzoeksnotitie bovenaan `openspec/changes/bm25-reuse/design.md`. Kernbevinding:
+D-EPSILON klopt niet — `BM25Okapi` vloert negatieve idf op `epsilon * average_idf`, maar
+`average_idf` kán zelf negatief worden op kandidatensets vol veelvoorkomende termen (empirisch:
+`average_idf ≈ -1.10`), waardoor scores negatief worden en het strikte 0..1-contract breekt. De
+hand-geschreven `log(1 + …)` is onvoorwaardelijk ≥ 0 — sterker invariant. Dit is juist het normale
+rerank-regime (top-K-kandidaten delen de queryterm). Aanbeveling: neigen naar afwijzen; voorstel
+blijft OPEN voor die beslissing. Geen productiecode geraakt.
+
 ### 2026-06-26 — feat(score): gestructureerde LLM-output met regex-fallback (structured-llm-score)
 
 **Waarom:** `pipeline/score.py` schraapte de relevantiescore + motivatie uit vrije tekst met regex
@@ -70,6 +83,21 @@ faalmodus. De top-100 was niet in één zin te verdedigen. Implementatie van Ope
 ranking + query-onafhankelijke tiebreak, max-chunk, cluster filtert niet, determinisme, report-why);
 `tests/test_score.py` + `tests/test_scope_filter.py` herschreven naar het nieuwe contract. Volledige
 suite **142 passed, 1 skipped**; ruff schoon.
+
+### 2026-06-26 — docs(presentation): PowerPoint-export van de BZK/ECP-pitch
+
+**Waarom:** de pitch-deck bestond alleen als reveal.js (`presentation/verkenning-bzk.html`,
+offline `file://`). Voor delen/bewerken in PowerPoint was een native `.pptx` gewenst.
+
+**Wat:**
+- Nieuw `presentation/verkenning-bzk.pptx` — 9 slides, 16:9, getrouwe export van de HTML-deck.
+  Tekst, tabel, kaarten en de trechter zijn **native, bewerkbare** PPTX-objecten; de speaker
+  notes uit `<aside class="notes">` zijn overgenomen in de notitievelden.
+- De twee SVG-diagrammen (double-diamond, venn) en het logo zijn gerasterd via `rsvg-convert`;
+  de twee échte rapport-embeds (`embeds/converge-report.html`, `discover-report.html`) zijn als
+  screenshot ingesloten via headless Chrome.
+- Reproduceerbaar buildscript + tussenartefacten in `presentation/pptx-build/`
+  (`build_pptx.py`, `diamond.svg`, `venn.svg`, `img/`). `verkenning-bzk.html` is niet aangeraakt.
 
 ### 2026-06-25 — feat(cloud): Voyage transport-hardening (branch `change/voyage-transport-hardening`, NIET op main)
 

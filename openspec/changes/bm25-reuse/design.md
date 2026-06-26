@@ -1,3 +1,36 @@
+## Research finding (2026-06-26) — D-EPSILON is wrong; proposal left OPEN, do not apply as specced
+
+A pre-implementation review against the actual `rank_bm25==0.2.2` source and empirical edge-case
+tests found that this change is **not** the behavioural no-op the design claims. Recorded here so a
+future reader does not implement it on the false premise.
+
+- **D-EPSILON's core invariant is false.** The design states the epsilon floor keeps all score
+  contributions non-negative, so `_normalize_scores` "cannot emit a negative value." It can.
+  `BM25Okapi` floors a negative idf to `eps = epsilon * average_idf`, but `average_idf` **itself
+  goes negative** on common-term-dominated candidate sets. Verified: a corpus where query terms
+  appear in >half the docs yields `average_idf ≈ -1.10` → `eps ≈ -0.27` → all floored idfs
+  negative → negative scores. The old hand-rolled `log(1 + (n-df+0.5)/(df+0.5))` is
+  **unconditionally ≥ 0** (argument always > 1) — a strictly stronger invariant.
+- **This is the reranker's *normal* regime, not a corner.** Rerank runs over the top-K retrieved
+  candidates, selected precisely because they share the query terms → exactly the negative-idf
+  regime. A query mixing a common term (floored negative) with a rare term (positive idf) produces
+  mixed-sign scores with `hi > 0`; `_normalize_scores` then passes the negatives through as
+  **negative normalized outputs**, breaking the strict 0..1 contract this change promises to keep.
+- **Non-issue (was a listed risk):** `get_scores` returns `np.float64`, but that is a `float`
+  subclass and `json.dumps` serializes it fine — the audit log is safe. Cosmetic only (`.tolist()`
+  for `list[float]` purity).
+- **`rank_bm25` is frozen, not maintained.** Latest release `0.2.2` (~2022), 8.6 kB pure-Python.
+  Footprint is genuinely free (numpy already present via `datasketch`/`scipy` — D-FOOTPRINT holds),
+  but "reuse so upstream maintains it" is hollow: there is no upstream maintenance.
+
+**Recommendation:** lean toward declining — keep the ~20-line owned implementation; it is small,
+deterministic, fully tested, and has a *stronger* numerical invariant than the library. If reuse
+is still pursued, D-EPSILON must be rewritten to admit scores can go negative, and either
+`_normalize_scores` must clamp (contradicting a stated non-goal) or the always-positive idf must be
+preserved (defeating the reuse rationale). Left OPEN for that decision; **not** ready to apply.
+
+---
+
 ## Context
 
 `LexicalReranker.rerank` (`src/zeef/drivers/local.py:64-85`) is a hand-written Okapi-BM25:

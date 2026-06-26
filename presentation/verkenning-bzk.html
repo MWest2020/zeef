@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zeef — van duizend documenten naar honderd · BZK/ECP 26-06-2026</title>
+
+  <!--
+    Pitch-deck Technische Verkenning AI-tools Woo-proces — BZK/ECP, 26 juni 2026.
+    Hergebruikt de lokaal gevendorde reveal.js 5.1.0 (reveal/). GEEN CDN, geen netwerk.
+    Werkt volledig offline via file://. Wit thema (beamer-veilig).
+    index.html is NIET aangeraakt; dit is een apart, niet-destructief bestand.
+
+    Fonts: reveal/theme-white.css importeert source-sans-pro, maar reveal/fonts/ ONTBREEKT.
+    Daarom forceren we hieronder een system-font-stack (val-terug, geen externe request).
+
+    Speaker notes: de gevendorde reveal/ bevat geen notes-plugin. Daarom een eigen,
+    dependency-vrije overlay (toets 'S') die de standaard <aside class="notes"> toont.
+  -->
+  <link rel="stylesheet" href="reveal/reset.css">
+  <link rel="stylesheet" href="reveal/reveal.css">
+  <!-- Wit thema NA reveal.css -->
+  <link rel="stylesheet" href="reveal/theme-white.css">
+
+  <style>
+    /* ---- Fonts: system-stack i.p.v. ontbrekende source-sans-pro (offline-veilig) ---- */
+    :root {
+      --r-main-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --r-heading-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --r-code-font: ui-monospace, "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, Consolas, monospace;
+
+      /* Kleurarm palet — kleur = ruis. Eén ingehouden accent. */
+      --ink:    #1a1a1a;
+      --g700:   #3f3f46;
+      --g500:   #71717a;
+      --g400:   #a1a1aa;
+      --g300:   #d4d4d8;
+      --g150:   #e8e8ec;
+      --g100:   #f4f4f5;
+      --line:   #c9c9cf;
+      --accent: #4376fc;      /* Conduction-blauw (logo) — accenten, rules, fills, logo */
+      --accent-ink: #2f54d4;   /* donkerder blauw voor kleine accent-tekst (≥4.5:1 op wit) */
+      --accent-bg: #e9eefe;    /* zeer lichte blauw-tint — alleen achter kleine labels, niet bodytekst */
+    }
+
+    /* Leesbare koppen (thema-default = UPPERCASE, te schreeuwerig voor NL-zinnen) */
+    .reveal h1, .reveal h2, .reveal h3, .reveal h4 { text-transform: none; letter-spacing: normal; }
+    .reveal h1 { font-size: 2.0em; }
+    .reveal h2 { font-size: 1.35em; color: var(--ink); }
+    .reveal h3 { font-size: 0.78em; color: var(--ink); margin: 0 0 .25em; }
+    .reveal { color: var(--ink); }
+    .reveal section { text-align: left; }
+    .reveal section.z-center, .reveal section.z-center * { text-align: center; }
+
+    .z-kicker {
+      font-size: 0.42em; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--g500); font-weight: 600; margin-bottom: .4em;
+    }
+    .z-sub { color: var(--g500); font-size: 0.62em; }
+    .z-lead { font-size: 0.62em; line-height: 1.5; color: var(--g700); }
+    .reveal strong { color: var(--ink); }
+    .reveal em { font-style: italic; color: var(--g700); }
+    .reveal code { font-family: var(--r-code-font); font-size: 0.85em; background: var(--g100); padding: .04em .3em; border-radius: 3px; color: var(--ink); }
+    .accent { color: var(--accent); }
+    .mute { color: var(--g500); }
+
+    /* ---- Cards / kolommen ---- */
+    .z-cols { display: grid; grid-template-columns: 1fr 1fr; gap: .7em; }
+    .z-cols.three { grid-template-columns: 1fr 1fr 1fr; }
+    .z-card {
+      border: 1px solid var(--line); border-radius: 8px; padding: .6em .7em;
+      background: #fff; font-size: 1em;
+    }
+    .z-card p { font-size: 0.6em; line-height: 1.5; color: var(--g700); margin: 0; }
+    .z-card.accent-card { border-color: var(--accent); background: var(--accent-bg); }
+
+    /* ---- Agenda ---- */
+    .z-agenda { list-style: none; margin: .3em 0 0; padding: 0; }
+    .z-agenda li {
+      display: flex; align-items: baseline; gap: .6em;
+      font-size: 0.6em; line-height: 1.8; border-bottom: 1px solid var(--g150); padding: .15em 0;
+    }
+    .z-agenda .n { color: var(--accent); font-weight: 700; min-width: 1.4em; font-variant-numeric: tabular-nums; }
+    .z-agenda .t { color: var(--ink); font-weight: 600; min-width: 8.5em; }
+    .z-agenda .d { color: var(--g500); }
+
+    /* ---- Tabel ---- */
+    table.z-tbl { width: 100%; border-collapse: collapse; font-size: 0.52em; }
+    table.z-tbl th, table.z-tbl td { border: 1px solid var(--line); padding: .45em .6em; text-align: left; vertical-align: top; }
+    table.z-tbl th { background: var(--g100); font-weight: 700; color: var(--ink); }
+    table.z-tbl td.row-h { background: var(--g100); font-weight: 600; }
+    table.z-tbl .sov { background: var(--accent-bg); }
+
+    /* ---- Big statement ---- */
+    .z-big {
+      font-size: 1.05em; font-weight: 700; line-height: 1.25; color: var(--ink);
+      border-left: 4px solid var(--accent); padding-left: .5em; margin: .2em 0 .5em;
+    }
+
+    /* ---- Pijplijn ---- */
+    .z-pipe { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4em; margin-top: .5em; }
+    .z-step {
+      border: 1px solid var(--line); border-radius: 6px; padding: .4em .5em; background: #fff;
+      position: relative;
+    }
+    .z-step .n { font-size: 0.42em; color: var(--g400); font-weight: 700; }
+    .z-step .t { display: block; font-size: 0.5em; font-weight: 700; color: var(--ink); margin-top: .1em; }
+    .z-step .d { display: block; font-size: 0.42em; color: var(--g500); line-height: 1.35; margin-top: .15em; }
+    .z-step.sel { border-color: var(--accent); background: var(--accent-bg); }
+    .z-step.disc { border-style: dashed; border-color: var(--g400); background: var(--g100); }
+
+    .z-callout {
+      margin-top: .6em; font-size: 0.56em; line-height: 1.45; color: var(--g700);
+      background: var(--g100); border: 1px solid var(--g300); border-radius: 6px; padding: .5em .7em;
+    }
+
+    /* ---- Funnel-cijfers ---- */
+    .z-funnel { display: flex; align-items: center; gap: .5em; margin-top: .6em; font-variant-numeric: tabular-nums; }
+    .z-funnel .seg {
+      border: 1px solid var(--line); border-radius: 6px; padding: .35em .55em; text-align: center; min-width: 4.2em; background: #fff;
+    }
+    .z-funnel .seg.sel { border-color: var(--accent); background: var(--accent-bg); }
+    .z-funnel .seg .v { font-size: 0.7em; font-weight: 700; color: var(--ink); }
+    .z-funnel .seg .l { font-size: 0.38em; color: var(--g500); text-transform: uppercase; letter-spacing: .05em; }
+    .z-funnel .arrow { color: var(--g400); font-size: 0.7em; }
+
+    /* ---- Lege/te-vullen blokken ---- */
+    .z-todo {
+      border: 2px dashed var(--g400); border-radius: 8px; padding: .55em .7em; margin-top: .5em;
+      font-size: 0.52em; color: var(--g500); background: repeating-linear-gradient(45deg,#fafafa,#fafafa 8px,#f2f2f3 8px,#f2f2f3 16px);
+    }
+    .z-todo strong { color: var(--g700); }
+
+    /* ---- Iframe-embeds ---- */
+    .z-embed-wrap { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; margin-top: .35em; }
+    .z-embed-wrap iframe { width: 100%; height: 480px; border: 0; display: block; background: #fff; }
+    .z-embed-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.42em; color: var(--g500); padding: .25em 0 0;
+    }
+    .z-embed-bar a { color: var(--accent-ink); text-decoration: none; font-weight: 600; }
+    .z-embed-bar a:hover { text-decoration: underline; }
+
+    /* ---- Voorblad / footer ---- */
+    .z-title { font-size: 2.4em; font-weight: 800; color: var(--ink); margin: 0; letter-spacing: -.01em; }
+    .z-tagline { font-size: 0.8em; color: var(--accent); font-weight: 600; margin: .15em 0 .6em; }
+    .z-meta { font-size: 0.5em; color: var(--g500); line-height: 1.7; }
+    .z-meta .b { color: var(--ink); font-weight: 600; }
+    .z-badges { margin-top: .7em; }
+    .z-badge {
+      display: inline-block; font-size: 0.42em; border: 1px solid var(--line); border-radius: 999px;
+      padding: .25em .8em; color: var(--g700); margin: 0 .2em;
+    }
+
+    /* ---- Categorie-chips (out of scope) ---- */
+    .z-chips { display: flex; flex-wrap: wrap; gap: .35em; margin-top: .3em; }
+    .z-chip { font-size: 0.46em; border: 1px solid var(--g400); border-radius: 999px; padding: .2em .65em; color: var(--g700); background: var(--g100); }
+
+    /* ---- Speaker-notes overlay (eigen, dependency-vrij; toets 'S') ---- */
+    #z-notes {
+      position: fixed; inset: auto 0 0 0; z-index: 9999; display: none;
+      max-height: 42vh; overflow: auto; background: #111; color: #f4f4f5;
+      border-top: 3px solid var(--accent); padding: 16px 24px; font-family: var(--r-main-font);
+      box-shadow: 0 -8px 24px rgba(0,0,0,.35);
+    }
+    #z-notes.on { display: block; }
+    #z-notes .hd { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #9aa; margin-bottom: 6px; }
+    #z-notes .bd { font-size: 17px; line-height: 1.55; }
+    #z-notes .bd p { margin: 0 0 .5em; }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================================================ -->
+      <!-- SLIDE 1 — Voorblad                                            -->
+      <!-- ============================================================ -->
+      <section class="z-center">
+        <img src="assets/conduction_logo_blauw.svg" alt="Conduction" style="height:60px;width:auto;display:block;margin:0 auto .7em;">
+        <div class="z-kicker">Technische Verkenning AI-tools Woo-proces · BZK / ECP · GovTechNL</div>
+        <p class="z-title">Zeef</p>
+        <p class="z-tagline">Van duizend documenten naar de honderd die ertoe doen — lokaal en navolgbaar</p>
+        <p class="z-meta">
+          <span class="b">Aanbieder:</span> Conduction &nbsp;·&nbsp; <span class="b">Licentie:</span> EUPL-1.2<br>
+          26 juni 2026
+        </p>
+        <div class="z-badges">
+          <span class="z-badge">Open source</span>
+          <span class="z-badge">Volledig offline</span>
+          <span class="z-badge">Boring &amp; auditable</span>
+        </div>
+        <aside class="notes">
+          Welkom. Ik ben van Conduction. Zeef doet één ding: van duizend documenten terug naar de
+          honderd die er werkelijk toe doen — en bij elk document kun je terugzien waaróm het gekozen is.
+          Open source, EUPL-1.2. Wat u vandaag ziet draait volledig op een eigen machine: niets verlaat
+          het pand. In zeven minuten, inclusief uw vragen: hoe het werkt, lokaal versus cloud, uw
+          uitvraag-punten, de aanpak, en twee échte outputs — geen plaatjes.
+        </aside>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE 2 — Agenda                                              -->
+      <!-- ============================================================ -->
+      <section>
+        <div class="z-kicker">Agenda</div>
+        <h2>Wat u in 7 minuten ziet</h2>
+        <p class="z-lead" style="font-size:.7em; max-width:30em;">
+          Hoe Zeef werkt · lokaal versus cloud · uitvraag-punten · de aanpak in het kort ·
+          twee échte outputs. Daarna vragenrondje.
+        </p>
+        <aside class="notes">
+          De rode draad: eerst begrijpen wát er ligt, dan kiezen wat telt — dat zijn twee verschillende
+          dingen. En: "binnen de vraag vallen" is iets anders dan "tot de belangrijkste honderd horen".
+          Dat onderscheid komt steeds terug. Twee slides tonen écht gegenereerde output, geen plaatjes.
+        </aside>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE 3 — Werkwijze: double diamond                          -->
+      <!-- ============================================================ -->
+      <section>
+        <div class="z-kicker">Werkwijze · eerst begrijpen, dan kiezen</div>
+        <p class="z-big">Begrijpen is niet kiezen. .</p>
+        <svg viewBox="0 0 960 200" width="100%" height="180" role="img" aria-label="Twee stappen: begrijpen en kiezen">
+          <!-- Stap 1: BEGRIJPEN -->
+          <polygon points="40,100 235,30 430,100 235,170" fill="#f4f4f5" stroke="#3f3f46" stroke-width="2"/>
+          <line x1="235" y1="30" x2="235" y2="170" stroke="#c9c9cf" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <text x="235" y="14" text-anchor="middle" font-size="15" font-weight="700" fill="#1a1a1a">BEGRIJPEN</text>
+          <text x="137" y="104" text-anchor="middle" font-size="11" fill="#71717a">breed kijken</text>
+          <text x="137" y="119" text-anchor="middle" font-size="10" fill="#a1a1aa">naar onderwerpen</text>
+          <text x="333" y="104" text-anchor="middle" font-size="11" fill="#71717a">samenvatten</text>
+          <text x="333" y="119" text-anchor="middle" font-size="10" fill="#a1a1aa">tot een overzicht</text>
+          <text x="235" y="192" text-anchor="middle" font-size="10" fill="#a1a1aa">zonder zoekvraag</text>
+
+          <!-- Stap 2: KIEZEN -->
+          <polygon points="530,100 725,30 920,100 725,170" fill="#e9eefe" stroke="#4376fc" stroke-width="2"/>
+          <line x1="725" y1="30" x2="725" y2="170" stroke="#b4c4fc" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <text x="725" y="14" text-anchor="middle" font-size="15" font-weight="700" fill="#2f54d4">KIEZEN</text>
+          <text x="627" y="104" text-anchor="middle" font-size="11" fill="#2f54d4">breed kijken</text>
+          <text x="627" y="119" text-anchor="middle" font-size="10" fill="#6b7fc7">alle kandidaten</text>
+          <text x="823" y="104" text-anchor="middle" font-size="11" fill="#2f54d4">samenvatten</text>
+          <text x="823" y="119" text-anchor="middle" font-size="10" fill="#6b7fc7">naar de top ~100</text>
+          <text x="725" y="192" text-anchor="middle" font-size="10" fill="#6b7fc7">met de zoekvraag</text>
+        </svg>
+        <p class="z-lead">
+          Twee aparte stappen. <strong>Begrijpen</strong> brengt in kaart wát er ligt;
+          <strong>kiezen</strong> zet de documenten op volgorde van belang voor de concrete vraag.
+          
+        </p>
+        <aside class="notes">
+          Dit is de kern. Het Woo-proces vraagt twee verschillende dingen. Eén: begrijpen wát er in de
+          berg zit — zonder zoekvraag, je kijkt breed en vat samen tot een overzicht van onderwerpen.
+          Twee: kiezen wat relevant is voor de concrete vraag — je begint bij álle kandidaten en houdt
+          de belangrijkste honderd over. De fout die je niet wilt maken: een groot onderwerp aanzien
+          voor het belangrijkste, of "binnen de vraag" verwarren met "in de kern". Twee stappen, nooit
+          door elkaar.
+        </aside>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE 4 — Lokaal vs cloud + hoe zeker de keuze is             -->
+      <!-- ============================================================ -->
+      <section>
+        <div class="z-kicker">Lokaal vs cloud · en hoe zeker de keuze is</div>
+        <h2>Lokaal werkt — en bleek robuuster dan cloud.</h2>
+        <div class="z-cols" style="margin-top:.4em;">
+          <div class="z-card accent-card">
+            <h3>Lokaal <span class="mute" style="font-weight:400">(vandaag getoond)</span></h3>
+            <p>Draait op een eigen machine. Niets verlaat het pand.</p>
+          </div>
+          <div class="z-card">
+            <h3>Cloud</h3>
+            <p>Een krachtiger taalmodel, maar de documenten verlaten het pand.</p>
+          </div>
+        </div>
+        <p class="z-lead" style="margin-top:.4em;">
+          Op grotere schaal liep het cloud-pad vast op netwerk-wachttijd, óók nadat we de last per
+          document verlaagden. De lokale variant niet — <strong>lokaal bleek ook robuuster</strong>.
+          We tonen vandaag de lokale selectie.
+        </p>
+        <p class="z-lead" style="margin-top:.3em;">
+          Drie manieren om te bepalen welke documenten relevant zijn — en hoe vaak ze het eens zijn:
+        </p>
+        <svg viewBox="0 0 620 470" xmlns="http://www.w3.org/2000/svg" style="max-width:480px;width:100%;height:auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+          <text x="150" y="92" text-anchor="middle" font-size="17" fill="#3a4a4a">Taalmodel · betekenis</text>
+          <text x="470" y="92" text-anchor="middle" font-size="17" fill="#3a4a4a">Klassiek · woorden</text>
+          <text x="310" y="455" text-anchor="middle" font-size="17" fill="#3a4a4a">Eenvoudige ondergrens</text>
+          <circle cx="235" cy="200" r="130" fill="#4376fc" fill-opacity="0.13" stroke="#4376fc" stroke-width="2"/>
+          <circle cx="385" cy="200" r="130" fill="#4376fc" fill-opacity="0.13" stroke="#4376fc" stroke-width="2"/>
+          <circle cx="310" cy="320" r="130" fill="#4376fc" fill-opacity="0.13" stroke="#4376fc" stroke-width="2"/>
+          <text x="150" y="185" text-anchor="middle" font-size="22" fill="#1a2b2b" font-weight="600">38</text>
+          <text x="470" y="185" text-anchor="middle" font-size="22" fill="#1a2b2b" font-weight="600">32</text>
+          <text x="310" y="405" text-anchor="middle" font-size="22" fill="#1a2b2b" font-weight="600">39</text>
+          <text x="310" y="155" text-anchor="middle" font-size="20" fill="#1a2b2b">18</text>
+          <text x="232" y="305" text-anchor="middle" font-size="20" fill="#1a2b2b">11</text>
+          <text x="388" y="305" text-anchor="middle" font-size="20" fill="#1a2b2b">17</text>
+          <text x="310" y="250" text-anchor="middle" font-size="36" fill="#2f54d4" font-weight="700">33</text>
+          <text x="310" y="273" text-anchor="middle" font-size="13" fill="#2f54d4">in alle drie</text>
+        </svg>
+        <p class="z-lead" style="font-size:.5em; color:var(--g500); margin:.3em 0 0;">
+          De drie manieren zijn het over <strong>33 documenten</strong> eens — dat is de kern waar we het
+          zekerst van zijn. Welke manier "beter" is, kunnen we hier niet meten: voor dit dossier bestaat
+          geen objectieve maatstaf.
+        </p>
+        <aside class="notes">
+          Twee punten. Eén, lokaal versus cloud: cloud gebruikt een krachtiger taalmodel, maar de documenten
+          verlaten dan het pand. En op grotere schaal liep het cloud-pad twee keer vast op netwerk-wachttijd
+          in de ophaal-stap, ook nadat we de last per document verlaagden. De lokale variant liep wél door —
+          lokaal bleek dus niet alleen veiliger maar ook robuuster. Er is vandaag dus geen cloud-selectie als
+          resultaat; we tonen de lokale.
+          Twee, hoe zeker de keuze is: we lieten drie manieren los om relevantie te bepalen — een taalmodel
+          dat op betekenis kijkt, een klassieke methode die op woorden matcht, en een hele eenvoudige
+          ondergrens. Ze zijn het over drieëndertig documenten eens; dat is de kern waar we het zekerst van
+          zijn. Welke manier "beter" is kunnen we hier niet hard maken — voor dit dossier is er geen
+          objectieve maatstaf om tegen af te meten.
+        </aside>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE 5 — Uitvraag-punten (3-juli-format)                    -->
+      <!-- ============================================================ -->
+      <section>
+        <div class="z-kicker">Uw uitvraag-punten · het belangrijkste</div>
+        <h2>Drie punten die ertoe doen</h2>
+        <table class="z-tbl" style="margin-top:.4em; font-size:.62em;">
+          <tbody>
+            <tr><td class="row-h" style="width:30%">Open source</td><td>Vrij te gebruiken én te controleren (EUPL-1.2)</td></tr>
+            <tr><td class="row-h">Lokaal &amp; soeverein</td><td>Draait in eigen huis; de documenten verlaten het pand niet</td></tr>
+            <tr><td class="row-h">Transparant</td><td>Elke beslissing wordt vastgelegd en is later terug te halen</td></tr>
+          </tbody>
+        </table>
+        <p class="z-lead" style="font-size:.5em; color:var(--g500); margin-top:.4em;">
+          Verder, kort: geen training op uw documenten · reeds-openbaar dossier (AVG geen beletsel) ·
+          koppelbaar aan bestaande systemen · geen kosten per verzoek. Details desgewenst.
+        </p>
+        <aside class="notes">
+          Drie kernpunten op de slide: open source onder EUPL-1.2 — vrij te gebruiken en te controleren;
+          lokaal en soeverein — de documenten blijven in huis; en transparant — elke beslissing wordt
+          vastgelegd en is terug te halen. De rest heb ik klaar als u ernaar vraagt: we trainen niet op uw
+          documenten; het gaat om reeds-openbaar te maken materiaal, dus AVG is geen beletsel, met een
+          DPIA-pad; Zeef koppelt aan bestaande systemen zoals M365, DMS en zaaksystemen; en er is geen
+          licentie per verzoek — open source plus eigen hardware. Schaal: vandaag is dit een verkenning,
+          opschalen is het pad.
+        </aside>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE 6 — De pijplijn (8 stappen)                            -->
+      <!-- ============================================================ -->
+      <section>
+        <div class="z-kicker">De aanpak · in drie stappen</div>
+        <h2>Opruimen → kiezen → landkaart</h2>
+        <div class="z-cols three" style="margin-top:.5em;">
+          <div class="z-card">
+            <h3>1 · Opruimen</h3>
+            <p>Inlezen, dubbelingen samenvoegen, en documenten buiten de vraag eruit:
+               doorstuurmails, agendaverzoeken, dubbelingen.</p>
+          </div>
+          <div class="z-card accent-card">
+            <h3>2 · Kiezen</h3>
+            <p>Wat overblijft op volgorde van belang voor de vraag — en de ongeveer honderd
+               belangrijkste overhouden.</p>
+          </div>
+          <div class="z-card">
+            <h3>3 · Landkaart</h3>
+            <p>Een overzicht van de onderwerpen in het dossier — ook bruikbaar als er nog
+               geen zoekvraag is.</p>
+          </div>
+        </div>
+        <div class="z-funnel">
+          <div class="seg"><div class="v">1000</div><div class="l">ingelezen</div></div>
+          <span class="arrow">→</span>
+          <div class="seg"><div class="v">1000</div><div class="l">leesbaar</div></div>
+          <span class="arrow">→</span>
+          <div class="seg"><div class="v">888</div><div class="l">binnen de vraag</div></div>
+          <span class="arrow">→</span>
+          <div class="seg sel"><div class="v">100</div><div class="l">gekozen</div></div>
+        </div>
+        <p class="z-lead" style="font-size:.5em; margin:.35em 0 0; color:var(--g500);">
+          Van 1000 documenten viel er niets af op leesbaarheid (0); 112 vielen buiten de vraag — allemaal
+          dubbelingen — en 888 bleven over. Daarvan kozen we de 100 die het dichtst bij de vraag liggen.
+          Waar je precies afkapt is een keuze, geen natuurwet.
+        </p>
+        <aside class="notes">
+          Drie stappen. Eén, opruimen: inlezen met een vaste vingerafdruk per document zodat dubbelingen
+          meteen samenvallen, en documenten die buiten de vraag vallen eruit — doorstuurmails,
+          agendaverzoeken, dubbelingen, procesmeldingen. Dat is een spelregel, geen oordeel over belang.
+          Twee, kiezen: wat overblijft zetten we op volgorde van belang voor de concrete vraag en houden de
+          ongeveer honderd belangrijkste over. Drie, landkaart: los daarvan kan Zeef een overzicht van alle
+          onderwerpen maken, ook zonder zoekvraag. De trechter: duizend ingelezen, op leesbaarheid valt
+          niets af, honderdtwaalf vallen buiten de vraag — allemaal dubbelingen — en honderd gekozen. Waar je
+          precies afkapt is een keuze; het verschil rond de grens is klein, dus die honderd is een keuze, geen
+          natuurwet.
+        </aside>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE 7 — report.html (converge) — echte embed                -->
+      <!-- ============================================================ -->
+      <section>
+        <div class="z-kicker">Het rapport · de echte output</div>
+        <h2 style="font-size:1.1em;">Wat de tool oplevert — echt, geen plaatje.</h2>
+        <div class="z-embed-wrap">
+          <iframe src="embeds/converge-report.html" title="Zeef rapport" loading="lazy"></iframe>
+        </div>
+        <div class="z-embed-bar">
+          <span>De top-100, met per document waaróm het gekozen is — en wat eruit viel.</span>
+          <a href="embeds/converge-report.html" target="_blank" rel="noopener">↗ open in nieuw tabblad</a>
+        </div>
+        <p class="z-lead" style="font-size:.46em; margin:.3em 0 0; color:var(--g500);">
+          Getoond: 86 (basis). Geleverd: 100 (zelfde volgorde, doorgesneden).
+        </p>
+        <aside class="notes">
+          Dit is geen plaatje. Dit is het rapport dat de tool zelf maakt: de gekozen honderd, bij elk
+          document waarom het gekozen is, hoe documenten samenhangen, en wat eruit viel en waarom. U kunt
+          erin navigeren. Als het op de beamer hapert, open ik het in een nieuw tabblad — de link staat
+          rechtsonder. Dit is de lokale run op het BZK-dossier. Eén eerlijke nuance: het rapport toont er
+          86 als basis; de geleverde set is honderd, uit precies dezelfde volgorde, alleen op honderd
+          doorgesneden.
+        </aside>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE 8 — Out of scope + discover                            -->
+      <!-- ============================================================ -->
+      <section>
+        <div class="z-kicker">Buiten de vraag + de onderwerpenkaart</div>
+        <h2 style="font-size:1.1em;">Buiten de vraag is een spelregel, geen oordeel over belang.</h2>
+        <p class="z-lead" style="margin:.1em 0 .2em;">
+          Wat eruit gaat, gaat eruit om een <strong>duidelijke reden</strong> — en dat is altijd terug te zien:
+        </p>
+        <div class="z-chips">
+          <span class="z-chip">doorstuurmails</span>
+          <span class="z-chip">agendaverzoeken</span>
+          <span class="z-chip">dubbelingen</span>
+          <span class="z-chip">procesmeldingen</span>
+          <span class="z-chip">eerdere mails in een thread</span>
+        </div>
+        <p class="z-lead" style="margin:.4em 0 .1em;">
+          <strong>Nog geen zoekvraag?</strong> Dan maakt Zeef eerst een overzicht van alle onderwerpen in het dossier.
+        </p>
+        <div class="z-embed-wrap">
+          <iframe src="embeds/discover-report.html" title="Zeef onderwerpenkaart" loading="lazy" style="height:300px;"></iframe>
+        </div>
+        <div class="z-embed-bar">
+          <span>Overzicht van de onderwerpen in het dossier.</span>
+          <a href="embeds/discover-report.html" target="_blank" rel="noopener">↗ open in nieuw tabblad</a>
+        </div>
+        <aside class="notes">
+          Buiten de vraag betekent niet onbelangrijk — het betekent: valt buiten de spelregels van dít
+          verzoek. De redenen zijn expliciet: doorstuurmails, agendaverzoeken, dubbelingen, procesmeldingen,
+          eerdere mails in een thread. Elke uitsluiting krijgt een reden mee en is terug te halen. En als de
+          zoekvraag nog onbekend is, maakt Zeef eerst een overzicht van alle onderwerpen in het dossier. Ook
+          hier een échte output, met een link rechtsonder: dat overzicht over ditzelfde BZK-dossier, met
+          hetzelfde lokale model als de selectie.
+        </aside>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SLIDE 9 — Vragen?                                            -->
+      <!-- ============================================================ -->
+      <section class="z-center">
+        <p class="z-title" style="font-size:1.9em;">Vragen?</p>
+        <p class="z-lead z-center" style="font-size:.7em; margin:.4em auto; max-width:24em;">
+          Verkenning vandaag — <strong>grotere schaal is het pad</strong>.
+        </p>
+        <p class="z-lead z-center" style="font-size:.6em; margin:.2em auto .3em; max-width:30em; color:var(--g500);">
+          Zeef aan te sluiten op bestaande systemen — <strong>DMS en zaaksystemen</strong> — en in de lokale
+          variant op <strong>Nextcloud</strong> en <strong>OpenAnonymiser</strong> voor de AVG-voorbewerking
+          (contextverrrijkend anonimiseren ipv <strong>lakken</strong>).
+        </p>
+        <p class="z-meta" style="margin-top:.4em;">
+          <span class="b">Zeef</span> · Conduction &nbsp;·&nbsp; EUPL-1.2<br>
+          mark@conduction.nl
+        </p>
+        <div class="z-badges">
+          <span class="z-badge">Open source</span>
+          <span class="z-badge">Soeverein &amp; offline</span>
+          <span class="z-badge">Elke beslissing herleidbaar</span>
+        </div>
+        <aside class="notes">
+          Samengevat: Zeef brengt u van duizend documenten terug naar de honderd die ertoe doen, en bij elke
+          stap kunt u terugzien waarom. Lokaal waar het moet, elke beslissing terug te halen. Open source,
+          EUPL-1.2. Het sluit aan op uw bestaande systemen — DMS en zaaksystemen — en in de lokale variant op
+          Nextcloud en OpenAnonymiser voor de AVG-voorbewerking. Wat u vandaag zag is een verkenning;
+          opschalen is het pad. Dank — ik beantwoord graag uw vragen. Contact: mark apenstaartje conduction
+          punt nl.
+        </aside>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- Eigen, dependency-vrije speaker-notes overlay -->
+  <div id="z-notes" aria-live="polite">
+    <div class="hd">Speaker notes — toets 'S' om te sluiten</div>
+    <div class="bd" id="z-notes-body"></div>
+  </div>
+
+  <!-- Lokaal gevendorde reveal.js engine — geen plugins, geen netwerk -->
+  <script src="reveal/reveal.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      slideNumber: 'c/t',
+      transition: 'slide',
+      controls: true,
+      progress: true,
+      width: 1280,
+      height: 720,
+      margin: 0.05,
+      center: false
+    });
+
+    // ---- Eigen speaker-notes overlay (vervangt de ontbrekende notes-plugin) ----
+    (function () {
+      var box = document.getElementById('z-notes');
+      var body = document.getElementById('z-notes-body');
+
+      function currentNotes() {
+        var slide = Reveal.getCurrentSlide();
+        if (!slide) return '';
+        var note = slide.querySelector('aside.notes');
+        return note ? note.innerHTML : '<em style="color:#889">— geen notitie bij deze slide —</em>';
+      }
+      function refresh() { body.innerHTML = currentNotes(); }
+      function toggle() { box.classList.toggle('on'); if (box.classList.contains('on')) refresh(); }
+
+      // Integreer met reveals eigen keyboard + help-overlay i.p.v. een losse listener.
+      Reveal.addKeyBinding({ keyCode: 83, key: 'S', description: 'Speaker notes (overlay)' }, toggle);
+      Reveal.on('slidechanged', function () { if (box.classList.contains('on')) refresh(); });
+      Reveal.on('ready', refresh);
+    })();
+  </script>
+</body>
+</html>
