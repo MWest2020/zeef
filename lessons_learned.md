@@ -133,3 +133,44 @@ de bodem verder verlagen — tegen extra embed-tijd.
   noodzakelijke, geen voldoende eigenschap.
 - **Tune op de echte representatie, niet op een goedkope proxy** (zie §2): de doc-vector-sweep
   was 28 procentpunt naast de chunk-niveau-werkelijkheid.
+
+---
+
+# 2026-06-25/26 — Overlap cosine-soeverein vs. cloud-Haiku (proxy-corpus Gooise Meren, 414 PDF's)
+
+Volledig rapport: `runs/cloud-blind-20260625-215625/overlap_report.txt`.
+
+## Overlap cosine-soeverein vs cloud-Haiku (proxy-corpus Gooise Meren, 414 PDF's)
+- Setup: identieke query "Woo-verzoek noodopvang asielzoekers", scope-gate off, `score_top_k=0`.
+  Cosine-run: qwen3-embedding, `--no-llm`, 346 kandidaten, 89 geselecteerd, 346 unieke
+  cosine-waarden. Cloud-run: Voyage-embed + Haiku-selector, 348 kandidaten, 91 geselecteerd.
+- Overlap: **54 gedeelde doc-ids. Jaccard 0,429.** Symmetric difference 35 cosine-only / 36
+  Haiku-only (+1 funnel-artefact: `1265383.pdf` was geen cosine-kandidaat want qwen3-dedup vouwde
+  't als near-dup weg — het was het Woo-verzoek zélf).
+
+## De kernbevinding (dit is waarom de entry bestaat)
+- De twee methoden meten **systematisch iets anders, geen ruis**:
+  - Cosine koos docs die Haiku op 0,65 zette (net onder cut): docs die het onderwerp **noemen**
+    maar er niet over **gaan** ("vermeldt AZC, geen relevante info"; "globale migratiecijfers, geen
+    noodopvang-info"). Cosine = vector-nabijheid tot een korte query → vangt lexicale/thematische
+    nabijheid, niet inhoudelijke dekking.
+  - Haiku koos docs die cosine onder de grens rankte: criteria-dekkende docs (noodopvang-capaciteit,
+    Spreidingswet). Haiku = inhoudelijk oordeel over of het doc de zoekvraag behandelt.
+- Implicatie: pure cosine op een **korte query** heeft een bekende zwakte — "noemt het maar gaat er
+  niet over"-docs scoren hoog. Dit is náást de eerder vastgelegde e-mailmetadata-ruis (adresregels
+  die lexicaal dicht bij de query liggen).
+- Open hypothese (**niet getest**): een sterker embedding-model (Voyage i.p.v. qwen3:0.6b) met
+  dezelfde cosine-selector zou de "noemt-het"-zwakte kunnen verminderen, want beter embedding vangt
+  semantische dekking beter dan lexicale nabijheid. Dit is de niet-geteste config B en de eerste
+  run-kandidaat voor de echte dataset.
+
+## Tweede signaal (klein, noteren)
+- qwen3-dedup vouwde het Woo-verzoek zelf weg als near-duplicate. Mogelijk te agressieve
+  near-dup-drempel op het kleine model. Geen demo-blocker; te verifiëren op de echte dataset.
+
+## Harde caveat
+- Dit is een **feit over twee verschillende pijplijnen op één proxy-corpus**, geen uitspraak over
+  "cosine vs Haiku" geïsoleerd: embedding **én** selector verschillen tegelijk, plus
+  truncatie-asymmetrie (Voyage 16000 vs qwen3 8000 chars). De overlap isoleert geen van beide assen.
+  **Geen "soeverein ≈ cloud"-conclusie.** En: geldt voor het Gooise Meren-proxy-corpus, niet
+  noodzakelijk voor de BZK-dataset.
