@@ -6,6 +6,22 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-27 — docs(scope-rules): thread-tail recall-risico vastgelegd (latent, geen fix)
+
+**Waarom:** een embedder-bake-off op het gelabelde Dutch Woo-corpus (zeef-eval
+`real-nl.ab3.2i.2023.1-1006`) liet recall vastlopen op 0.61 — 80/206 relevante docs vielen
+pre-retrieve weg. Diagnose: geen embedder- of dedup-kwestie, maar een interactie
+`rule_thread_tail` × validity-gate (de thread-tip is quote-vrij/kort → validity dropt 'm als
+`empty-after-ocr` → heel thread weg, incl. enig relevant bericht).
+
+**Wat:** docstring met BEKEND RECALL-RISICO op `rule_thread_tail` in
+`src/zeef/pipeline/scope_rules.py`. Het risico is **latent, niet-actief**: het vereist
+RFC 5322-gethreade e-mail; PDF-dossiers missen die headers, dus de regel vuurt daar nooit
+(bevestigd: **0 vuringen** op het BZK-PDF-corpus, waar enkel de dedup-regel vuurde). De
+waargenomen 0.61-cap kwam van een synthetisch e-mailcorpus met kunstmatig lege tips. **Geen
+code-fix.** Wordt een écht gethread e-mailcorpus ooit een use-case, dan is de recall-safe
+thread-tail (collapse alleen als de tip de validity-gate overleeft) een aparte OpenSpec-change.
+
 ### 2026-06-26 — docs(bm25-reuse): D-EPSILON-bevinding vastgelegd — voorstel OPEN, niet toepassen
 
 **Waarom:** vóór implementatie de aanname "drop-in no-op op het contract" getoetst tegen de echte

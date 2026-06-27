@@ -63,6 +63,22 @@ def rule_process_notification(doc: Document) -> str | None:
 
 
 def rule_thread_tail(doc: Document) -> str | None:
+    """Sluit niet-tip-berichten uit; de thread-tip vertegenwoordigt het thread.
+
+    BEKEND RECALL-RISICO (latent, niet-actief — geen fix nu).
+    De aanname is dat de tip (diepste/laatste reply, zie threads._pick_tip) de inhoud van het thread
+    draagt. Dat klopt voor echte e-mail waar de laatste reply de gequote historie meeneemt: de
+    validity-gate telt `len(doc.text)` inclusief quotes, dus zo'n tip overleeft. Het bezwijkt alleen
+    in de smalle conditie *RFC 5322-gethreade mail ÉN een quote-vrije/korte tip*: dan collapst deze
+    regel het inhoudelijke eerdere bericht naar een tip die de validity-gate vervolgens als
+    `empty-after-ocr` laat vallen → het hele thread (incl. enig relevant bericht) verdwijnt
+    pre-retrieve. Waargenomen op een synthetisch e-mailcorpus (kunstmatig lege tips); een
+    recall-cap van 0.61 daar.
+    Kán NIET spelen op PDF-dossiers: die missen e-mailheaders, dus deze regel vuurt nooit
+    (bevestigd: 0 vuringen op het BZK-PDF-corpus). Wordt een Woo-verzoek ooit een écht gethread
+    e-mailcorpus, dan is de recall-safe variant (collapse alleen als de tip de validity-gate
+    overleeft, anders het inhoudrijkste overlevende bericht behouden) een aparte OpenSpec-change.
+    """
     if doc.doc_type != "email" or doc.metadata.get("thread_size", 1) <= 1:
         return None
     if doc.metadata.get("thread_tip", True):
