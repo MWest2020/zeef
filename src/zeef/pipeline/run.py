@@ -27,6 +27,7 @@ from zeef.export import (
 )
 from zeef.manifest import build_manifest
 from zeef.models import Criteria, Document
+from zeef.observe import StageObserver
 from zeef.pipeline.criteria import articulate_criteria
 from zeef.pipeline.ingest import ingest
 from zeef.pipeline.relate import DEFAULT_NEAR_DUP_THRESHOLD, DEFAULT_OVERLAP_THRESHOLD, relate
@@ -97,11 +98,13 @@ def run_converge(
     max_chunks_per_doc: int = DEFAULT_MAX_CHUNKS_PER_DOC,
     summary_max_words: int = DEFAULT_SUMMARY_MAX_WORDS,
     progress=None,
+    observe: bool = False,
 ) -> RunResult:
     """Draai de volledige convergentie en schrijf de artefacten naar `out_dir`."""
     # Per-stage wall-clock vastleggen: één 'timing'-event per stage in de audit-log én een
     # geaggregeerd run-manifest. perf_counter is monotoon (immuun voor klok-aanpassingen).
     timings: list[dict[str, Any]] = []
+    observer = StageObserver(audit.path, providers) if observe else None
 
     def run_stage(name: str, fn):
         if progress is not None:
@@ -111,6 +114,8 @@ def run_converge(
         elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
         timings.append({"stage": name, "elapsed_ms": elapsed_ms})
         audit.event(name, "timing", inputs={"elapsed_ms": elapsed_ms})
+        if observer is not None:
+            observer.render(name)
         return out
 
     run_started = datetime.now(timezone.utc)

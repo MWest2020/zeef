@@ -6,6 +6,23 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-27 — feat(observe): per-stap terminalweergave tijdens een run (`--observe`)
+
+**Waarom:** de pijplijn moest stap voor stap zichtbaar worden in de terminal — wat gaat erin, wat
+komt eruit, welke beslissing nam de stap, en draaide hij soeverein of in de cloud.
+
+**Wat:** een `--observe`-vlag (ook `ZEEF_OBSERVE=1`), **default uit**, die na elke stap (criteria →
+ingest → validity → relate → scope-filter → retrieve → rerank → score → select → topics → summarise →
+export) een rich-panel print met INPUT/OUTPUT/KEUZE/HERKOMST. Puur observability: **geen meet-logica,
+geen pijplijn-wijziging** — het leest alleen de audit-events die elke stap al schrijft. Het
+soeverein/cloud-label wordt afgeleid van de feitelijk gebruikte provider (`providers.embed/reranker/llm`,
+zelfde bron als het run-manifest), niet gehardcodeerd.
+
+**Bestanden:** nieuw `src/zeef/observe.py` (renderer) + `src/zeef/observe_blocks.py` (per-stap-extractie);
+`pipeline/run.py` (observe-hook in `run_stage`, na het timing-event), `cli.py` (`--observe`-optie),
+`config.py` (`observe`-setting voor `ZEEF_OBSERVE`). README usage bijgewerkt. Default-uit-run is
+byte-identiek aan voorheen; 148 tests groen, ruff schoon, alle bestanden ≤200 regels.
+
 ### 2026-06-27 — docs(pipeline): stap-doc scope-filter + verlies-inventarisatie
 
 **Waarom:** een vast sjabloon bewijzen op de complexste stap, en data-gedreven vaststellen waar in de

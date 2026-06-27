@@ -82,6 +82,15 @@ Volledig air-gapped, zonder LLM of netwerk:
 zeef converge ./docs --query "..." --profile sovereign --no-llm --target 100
 ```
 
+**Stap voor stap meekijken** — `--observe` (of `ZEEF_OBSERVE=1`) print tijdens de run per stap een
+leesbaar paneel: input/output-aantallen, welke beslissing de stap nam (regel/model/berekening) en of
+de stap soeverein (lokaal) of in de cloud draaide. Default uit; verandert het runresultaat niet, het
+leest alleen de audit-trail die de pijplijn al schrijft.
+
+```
+zeef converge ./docs --query "..." --profile sovereign --target 100 --observe
+```
+
 **Ontdekken zonder zoekvraag** — `discover` doorzoekt een ongezien corpus en levert de
 onderwerp/deelonderwerp-landkaart (wát zit erin?), vóór er een query is. Dezelfde clustering als
 `converge`, maar over het hele valide, gededupliceerde corpus; per cluster een label en (mét LLM)

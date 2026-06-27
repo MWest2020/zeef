@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     # gate-stand gelijk te houden aan een vergelijkingsrun zonder die poort. Pydantic parset
     # ZEEF_SCOPE_FILTER_LLM=off → False. Default True (gedrag onveranderd).
     scope_filter_llm: bool = True
+    # Observability: print per stap een leesbaar panel (in/uit/keuze/herkomst) tijdens een run.
+    # Default uit, zodat normale runs ongewijzigd blijven. CLI `--observe` of ZEEF_OBSERVE=1.
+    observe: bool = False
     # LLM-backend losgekoppeld van het profiel, zodat het scope-filter-LLM onafhankelijk te
     # kiezen is (model-vergelijking): None volgt het profiel ("ollama" bij sovereign, "cloud"
     # bij cloud); expliciet "ollama" of "cloud" overschrijft dat — embeddings/rerank blijven

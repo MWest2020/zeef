@@ -70,6 +70,7 @@ def converge(
     min_chars: int | None = typer.Option(None, "--min-chars", help="Validity-gate: minimaal aantal leesbare tekens (daaronder leeg-na-OCR, tenzij gelakt)."),
     redaction_ratio: float | None = typer.Option(None, "--redaction-ratio", help="Validity-gate: laksignaal-drempel waarboven een dun document als gelakt behouden blijft."),
     out: Path | None = typer.Option(None, "--out", help="Uitvoermap voor deze run."),
+    observe: bool = typer.Option(False, "--observe", help="Toon per stap een leesbaar blok (in/uit/keuze/herkomst) tijdens de run. Ook via ZEEF_OBSERVE=1."),
 ) -> None:
     """Draai de convergentie over `docs` en lever inventory/relations/criteria/audit op."""
     mode, value = _resolve_cutoff(top_n, threshold, target)
@@ -110,7 +111,7 @@ def converge(
                           min_cluster_size=settings.min_cluster_size,
                           max_chunks_per_doc=settings.max_chunks_per_doc,
                           summary_max_words=settings.summary_max_words,
-                          progress=lambda s: console.print(f"  [dim]→[/] {s}"))
+                          progress=lambda s: console.print(f"  [dim]→[/] {s}"), observe=observe or settings.observe)
     _summary(result, mode, value)
 
 
