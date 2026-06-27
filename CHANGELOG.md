@@ -6,6 +6,22 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-27 — docs(pipeline): stap-doc scope-filter + verlies-inventarisatie
+
+**Waarom:** een vast sjabloon bewijzen op de complexste stap, en data-gedreven vaststellen waar in de
+pijplijn documenten (en relevante docs) verdwijnen, zodat de optimalisatie-volgorde door meting wordt
+bepaald.
+
+**Wat:** twee read-only docs (geen code gewijzigd):
+- `docs/pipeline/scope-filter.md` — sjabloon-proof: doel, input/output, beslissing (regels + LLM-gate),
+  knoppen (`ZEEF_SCOPE_FILTER_LLM`, `ZEEF_OLLAMA_LLM_MODEL`), lokaal/hybride/cloud, Mermaid-flow, en
+  valkuilen mét status (scope-collapse ACTIEF; thread-tail LATENT). Elke claim met code- of
+  audit-verwijzing.
+- `docs/pipeline/loss-inventory.md` — per-stap verlies-tabel uit bestaande audits (EVAL-qrels, BZK-PDF,
+  Gooise Meren). Kernbevinding: grootste recall-verlies = scope-LLM-gate op klein model (414→4, 349
+  UITSLUITEN); met gate uit is verlies corpus-afhankelijk (e-mail: validity 53 + thread-tail 27 relevant;
+  PDF: ~0). De bake-off-uitdunning (145/1006) is een e-mail-corpus-confound, niet de embedder.
+
 ### 2026-06-27 — docs(scope-rules): thread-tail recall-risico vastgelegd (latent, geen fix)
 
 **Waarom:** een embedder-bake-off op het gelabelde Dutch Woo-corpus (zeef-eval
