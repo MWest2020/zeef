@@ -13,13 +13,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
 from zeef.observe_blocks import build
+
+# Werkwoord per stap voor de voortgangsregel (alleen cosmetisch).
+_PROGRESS_VERB = {"ingest": "ingelezen", "retrieve": "embedded", "embed": "embedded"}
 
 # Korte, statische stap-omschrijving (de cijfers/provider komen uit de run zelf).
 _TITLES = {
@@ -69,6 +72,24 @@ class StageObserver:
     def _prov(self, role: str) -> tuple[str, str]:
         prov = getattr(self.providers, role, None)
         return getattr(prov, "name", "?"), getattr(prov, "location", "?")
+
+    def progress_for(self, stage: str) -> Callable[[int, int], None]:
+        """Per-item voortgangscallback voor een lange stap (ingest/retrieve/embed).
+
+        Begrensd tot ~20 platte regels per stap (print bij elke ~5% en altijd op het laatste
+        item), zodat een omgeleide observe-log leesbaar en tail-vriendelijk blijft. Schrijft
+        niets naar de audit-trail en raakt geen resultaten: puur cosmetisch.
+        """
+        verb = _PROGRESS_VERB.get(stage, "verwerkt")
+
+        def _cb(done: int, total: int) -> None:
+            if total <= 0:
+                return
+            step = max(1, total // 20)
+            if done % step == 0 or done == total:
+                self.console.print(f"  [dim]{stage}: {verb} {done}/{total}[/dim]")
+
+        return _cb
 
     def render(self, stage: str) -> None:
         """Hook na elke stap: lees de nieuwe audit-regels en print het panel (faalt nooit hard)."""

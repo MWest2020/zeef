@@ -13,6 +13,8 @@ houdt het zuiver vectorieel en volledig deterministisch.
 
 from __future__ import annotations
 
+from typing import Callable
+
 from zeef.audit import AuditLog
 from zeef.drivers.local import LexicalReranker
 from zeef.models import Document
@@ -31,6 +33,7 @@ def candidates_of(docs: list[Document]) -> list[Document]:
 def embed_chunks(
     docs: list[Document], embed: EmbeddingProvider, audit: AuditLog,
     *, chunk_size: int = DEFAULT_CHUNK_SIZE, max_chunks_per_doc: int = 0,
+    progress: Callable[[int, int], None] | None = None,
 ) -> list[Document]:
     """Chunk + embed elk valide, niet-uitgesloten document en bewáár de chunks (mét embedding) op het
     document. Voor de query-loze discover-route: zo heeft `cluster_topics` echte chunk-embeddings,
@@ -39,7 +42,10 @@ def embed_chunks(
     clustering tóch samplet. Geeft het valide, gededupliceerde corpus terug."""
     targets = candidates_of(docs)
     total = 0
-    for doc in targets:
+    n_targets = len(targets)
+    for idx, doc in enumerate(targets, start=1):
+        if progress is not None:
+            progress(idx, n_targets)
         chunks = chunk_document(doc, chunk_size)
         if 0 < max_chunks_per_doc < len(chunks):
             step = len(chunks) / max_chunks_per_doc
@@ -64,13 +70,21 @@ def retrieve(
     *,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     hybrid_alpha: float = 0.0,
+    progress: Callable[[int, int], None] | None = None,
 ) -> list[Document]:
-    """Bereken `embed_sim` per kandidaat t.o.v. `query` en geef de kandidaten terug."""
+    """Bereken `embed_sim` per kandidaat t.o.v. `query` en geef de kandidaten terug.
+
+    `progress` (optioneel, alleen onder `--observe`) wordt per kandidaat aangeroepen met
+    (verwerkt, totaal); puur cosmetisch, raakt ranking/selectie niet.
+    """
     candidates = candidates_of(docs)
     query_vec = embed.embed([query])[0]
     location = getattr(embed, "location", "?")
     model = getattr(embed, "name", "?")
-    for doc in candidates:
+    n_candidates = len(candidates)
+    for idx, doc in enumerate(candidates, start=1):
+        if progress is not None:
+            progress(idx, n_candidates)
         chunks = chunk_document(doc, chunk_size)
         vecs = embed.embed([c.text for c in chunks])
         for chunk, vec in zip(chunks, vecs):

@@ -8,6 +8,7 @@ zonder tekstlaag (`pdf_scanned`) krijgen een expliciet 'OCR buiten scope'-event.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
 
 from zeef.audit import AuditLog
 from zeef.loaders import default_loaders, select_loader
@@ -18,13 +19,22 @@ STAGE = "ingest"
 
 
 def ingest(
-    docs_dir: Path, audit: AuditLog, loaders: list[Loader] | None = None
+    docs_dir: Path, audit: AuditLog, loaders: list[Loader] | None = None,
+    *, progress: Callable[[int, int], None] | None = None,
 ) -> list[Document]:
-    """Laad alle bestanden onder `docs_dir` tot genormaliseerde `Document`s."""
+    """Laad alle bestanden onder `docs_dir` tot genormaliseerde `Document`s.
+
+    `progress` (optioneel, alleen onder `--observe`) wordt per bestand aangeroepen met
+    (verwerkt, totaal); puur cosmetisch, raakt de uitkomst niet.
+    """
     loaders = loaders if loaders is not None else default_loaders()
     documents: list[Document] = []
-    for path in _iter_files(docs_dir):
+    files = _iter_files(docs_dir)
+    total = len(files)
+    for idx, path in enumerate(files, start=1):
         loader = select_loader(path, loaders)
+        if progress is not None:
+            progress(idx, total)
         if loader is None:
             audit.event(STAGE, "unsupported", inputs={"path": str(path)})
             continue

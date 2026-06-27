@@ -6,6 +6,29 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-27 — feat(observe): live voortgangsteller in ingest/retrieve + rijker criteria-paneel
+
+**Waarom:** `--observe` toonde per stap pas ná afloop een paneel; de lange per-item stappen
+(ingest, retrieve-embed) schreven niets tijdens het draaien, dus op een groot corpus leek de
+run minutenlang te hangen en was hij niet live te volgen. Implementatie van OpenSpec-change
+`observe-embed-progress`.
+
+**Wat:** onder `--observe` (of `ZEEF_OBSERVE=1`) tonen `ingest` en `retrieve` nu een
+voortgangsteller (`ingest: ingelezen N/totaal`, `retrieve: embedded N/totaal`), begrensd tot
+~20 platte regels per stap (tail-vriendelijk, geen rich-bar, geen per-document spam). Daarnaast
+toont het criteria-paneel onder `--no-llm` nu de eerste ~60 tekens van de échte zoekvraag i.p.v.
+het kale woord "zoekvraag". Voortgang loopt via een geïnjecteerde **callback** (geen audit-events
+erbij); **no-op als observe uit staat** en resultaten ongemoeid (selectie/decisions identiek met
+observe aan/uit — getest). `embed_chunks` (discover-route) kreeg dezelfde optionele param, maar
+discover heeft nog geen `--observe`-bedrading (toekomstig werk).
+
+**Bestanden:** `observe.py` (`StageObserver.progress_for`), `observe_blocks.py` (`_criteria`),
+`pipeline/ingest.py` + `pipeline/retrieve.py` (`progress`-param), `pipeline/run.py` (bedrading +
+`dataclasses.replace` om ≤200 regels te blijven). Nieuw `tests/test_observe_progress.py` (9 tests).
+README `--observe`-sectie bijgewerkt. **148→157 tests groen (1 skipped), ruff schoon, alle bestanden ≤200 regels.**
+Smoke op het fixture-corpus: ingest-teller, criteria-INPUT mét zoekvraag en embed-teller alle drie
+zichtbaar met `--observe`, nul observe-output zonder.
+
 ### 2026-06-27 — openspec(observe-embed-progress): voorstel live-voortgang embed-stap
 
 **Waarom:** `--observe` rendert per stap één paneel *ná* afloop (leest `audit.jsonl`). De

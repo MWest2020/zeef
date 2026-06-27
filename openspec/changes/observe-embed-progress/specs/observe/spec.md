@@ -20,9 +20,15 @@ disabled.
 - **THEN** the system prints one panel for that stage showing INPUT, OUTPUT, KEUZE, and
   HERKOMST, built only from that stage's audit events
 
-### Requirement: Live progress during long embedding stages
+#### Scenario: Criteria panel shows the actual query
 
-When observation is enabled, the per-candidate embedding loops SHALL report incremental progress to the console while they run, so a run can be followed live during the slowest stage instead of appearing frozen. This applies to the retrieve stage's per-candidate embed loop and to the query-less `embed_chunks` loop used by the discover route.
+- **WHEN** observation is enabled and criteria falls back to the raw query (`--no-llm`)
+- **THEN** the criteria panel's INPUT shows a prefix of the actual query text, not only
+  the literal word "zoekvraag"
+
+### Requirement: Live progress during long per-item stages
+
+When observation is enabled, the long-running per-item loops SHALL report incremental progress to the console while they run, so a run can be followed live during slow stages instead of appearing frozen. This applies to the ingest file-loading loop, the retrieve stage's per-candidate embed loop, and the query-less `embed_chunks` loop used by the discover route.
 
 Progress updates SHALL be emitted at a readable interval — a bounded number of updates,
 not one line per document — so a redirected observe log stays readable and `tail`-friendly.
@@ -37,6 +43,12 @@ change ranking, selection, or any exported artifact.
   candidates
 - **THEN** the console receives one or more progress updates naming the stage and the
   processed-count out of the total before the stage's completion panel is printed
+
+#### Scenario: Progress visible during ingest
+
+- **WHEN** observation is enabled and the ingest stage loads many files
+- **THEN** the console receives one or more progress updates naming the stage and the
+  processed-count out of the total before the ingest completion panel is printed
 
 #### Scenario: Bounded update volume
 

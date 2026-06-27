@@ -43,7 +43,10 @@ def _criteria(ev, prov):
                 "output": f"{len(art.get('criteria', []))} criteria",
                 "keuze": f"opgesteld door LLM ({name})" if art.get("source") == "llm" else "fallback: ruwe zoekvraag",
                 "herkomst": f"LLM lokaal of cloud — nu: {_sov(loc)}"}
-    return {"input": "zoekvraag", "output": "criteria = ruwe zoekvraag",
+    fb = _inp(ev, "fallback")
+    q = (fb.get("query") or "").strip()
+    inp = f'zoekvraag: "{q[:60]}{"…" if len(q) > 60 else ""}"' if q else "zoekvraag"
+    return {"input": inp, "output": "criteria = ruwe zoekvraag",
             "keuze": "fallback (geen LLM / --no-llm)", "herkomst": _DET}
 
 

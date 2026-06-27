@@ -8,7 +8,7 @@ providers. Deze functie kent geen concrete drivers en geen profiel; ze krijgt de
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -121,16 +121,18 @@ def run_converge(
     run_started = datetime.now(timezone.utc)
     wall_started = time.perf_counter()
 
+    # Per-item voortgang alleen onder --observe (anders None → no-op in de stages).
+    item_progress = (lambda s: observer.progress_for(s)) if observer else (lambda s: None)
+
     criteria = run_stage("criteria", lambda: articulate_criteria(query, providers, audit))
-    docs = run_stage("ingest", lambda: ingest(docs_dir, audit))
-    run_stage("validity", lambda: validity_gate(
-        docs, audit, min_chars=validity_min_chars,
+    docs = run_stage("ingest", lambda: ingest(docs_dir, audit, progress=item_progress("ingest")))
+    run_stage("validity", lambda: validity_gate(docs, audit, min_chars=validity_min_chars,
         redaction_ratio_threshold=redaction_ratio_threshold))
-    run_stage("relate", lambda: relate(
-        docs, providers.embed, audit, near_dup_threshold=near_dup_threshold,
-        overlap_threshold=overlap_threshold))
+    run_stage("relate", lambda: relate(docs, providers.embed, audit,
+        near_dup_threshold=near_dup_threshold, overlap_threshold=overlap_threshold))
     run_stage("scope-filter", lambda: scope_filter(docs, providers, audit, query))
-    candidates = run_stage("retrieve", lambda: retrieve(docs, providers.embed, audit, query))
+    candidates = run_stage("retrieve", lambda: retrieve(
+        docs, providers.embed, audit, query, progress=item_progress("retrieve")))
     ranked = run_stage("rerank", lambda: rerank(candidates, providers.reranker, audit, query))
     scored = run_stage("score", lambda: score(
         ranked, criteria, providers, audit, query, top_k=score_top_k))
@@ -195,5 +197,4 @@ def run_converge(
         "files": ["inventory.xlsx", "relations.json", "criteria.json", "topics.json",
                   "excluded.json", "report.html", "run-manifest.json", "audit.jsonl"],
     })
-    return RunResult(documents=docs, selected=selected, out_dir=out_dir,
-                     criteria=criteria, manifest=manifest)
+    return replace(result, manifest=manifest)
