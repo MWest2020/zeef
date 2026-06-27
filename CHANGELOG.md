@@ -6,6 +6,44 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-27 — openspec(observe-embed-progress): voorstel live-voortgang embed-stap
+
+**Waarom:** `--observe` rendert per stap één paneel *ná* afloop (leest `audit.jsonl`). De
+retrieve-stap embedt elke kandidaat in één lus en schrijft pas aan het eind een audit-event;
+op een groot corpus met een trage embedder (Ollama, ~1000 docs) is dit de langste stap en
+toont hij niets terwijl hij draait — de run lijkt te hangen en is niet live te volgen.
+Bewezen deze sessie: een sovereign Ollama-embed-run zat 17 min stil in retrieve (zie
+experiment hieronder).
+
+**Wat:** OpenSpec-change `observe-embed-progress` (alleen voorstel, **geen code gewijzigd**) —
+proposal + design + specs + tasks, `openspec validate` schoon. Ontwerp: een voortgangs-
+**callback** (géén audit-events erbij) in de embed-loops van `pipeline/retrieve.py`
+(`retrieve` + `embed_chunks`), ~20 platte regels `retrieve: embedded N/total` per stap
+(tail-vriendelijk, geen rich-bar), no-op als observe uit staat, resultaten byte-identiek.
+Nieuwe capability `observe` (bestond nog niet als spec). Valkuil vastgelegd: OpenSpec's
+validator leest alleen de **eerste regel** van een requirement → SHALL/MUST moet daar staan.
+
+**Bestanden:** nieuw `openspec/changes/observe-embed-progress/` (proposal/design/specs/tasks).
+Implementatie volgt via `/opsx:apply`.
+
+### 2026-06-27 — experiment(embedder): hashing vs Ollama qwen3-embedding op BZK-corpus
+
+**Waarom:** vaststellen wat de embedder-keuze doet met de selectie op het echte BZK-corpus
+(`Stukken technische verkenning`, 1001 PDF's), zelfde query/profiel/`--no-llm`. Read-only,
+geen code gewijzigd; runs in (gitignored) `runs/bzk-A-sovereign{,-ollama}/`.
+
+**Wat (bevindingen):**
+- **Runtime:** hashing 151,7s → Ollama `qwen3-embedding:0.6b` 1734,5s (~11×).
+- **Selectie:** 116 → 89 geselecteerd; overlap 44 docs, **Jaccard 0,27** (72 alleen hashing,
+  45 alleen Ollama) — de embedder verandert de kern substantieel.
+- **Topics:** 1 → **25 deelonderwerpen** — qwen3 geeft een semantisch bruikbare landkaart;
+  hashing klontert alles in één cluster. Sterkste signaal vóór een semantische embedder.
+- **Knie-cutoff:** 0,764 → 0,633 (andere cosine-verdeling, niet 1-op-1 vergelijkbaar).
+- **Caveat:** 1 embed-`HTTP 500` → nulvector-fallback (1 doc naar "Overig"); relate vond
+  minder near-dups (132 → 112). Zonder qrels geen uitspraak over *welke* selectie beter is,
+  alleen *dát* ze sterk verschillen. Ollama-500 op `qwen3-embedding:0.6b` nog niet
+  gediagnosticeerd (model-load/OOM/concurrency).
+
 ### 2026-06-27 — feat(observe): per-stap terminalweergave tijdens een run (`--observe`)
 
 **Waarom:** de pijplijn moest stap voor stap zichtbaar worden in de terminal — wat gaat erin, wat
