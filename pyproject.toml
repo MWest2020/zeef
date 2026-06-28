@@ -5,7 +5,7 @@ description = "Open-source convergentietool voor de Woo: van ~1000 semi-relevant
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "EUPL-1.2" }
-authors = [{ name = "Conduction", email = "info@conduction.nl" }]
+authors = [{ name = "Mark Westerweel", email = "mark@conduction.nl" }]
 keywords = ["woo", "e-discovery", "tar", "common-ground", "convergence", "audit"]
 
 # Core deps — enough to run the default (sovereign) pipeline air-gapped, end to end.
