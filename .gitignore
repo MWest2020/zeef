@@ -50,3 +50,6 @@ docs/.hugo_build.lock
 .idea/
 .vscode/
 config
+
+# Lokale experiment-scratch met klant-/casusnamen — niet publiek
+docs/experiments/
