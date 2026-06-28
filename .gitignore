@@ -53,3 +53,9 @@ config
 
 # Lokale experiment-scratch met klant-/casusnamen — niet publiek
 docs/experiments/
+
+# Niet-tool content (niet relevant voor een derde-gebruiker; lokaal behouden)
+presentation/
+HACKATHON-STAND.md
+hackathon/
+docs/pipeline/loss-inventory.md
