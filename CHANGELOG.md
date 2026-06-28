@@ -6,6 +6,35 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-28 — experiment(embedder): drie Ollama-embedders op BZK (0.6b / 4b / bge-m3)
+
+**Waarom:** vaststellen wat de embedder-keuze doet met de selectie én wat praktisch haalbaar is
+op deze hardware (RTX 3060 Laptop, 6 GB VRAM). Drie `--observe`-runs, sovereign `--no-llm`,
+zelfde query/cutoff (target=100), `ZEEF_SOVEREIGN_EMBED=ollama`, alleen de embedder verschilt.
+Read-only, geen pijplijn-code gewijzigd; runs in (gitignored) `runs/bzk-{A-sovereign-ollama,
+B-qwen3-4b,bge-m3}/`. **Feiten, geen oordeel — blind corpus, geen ground truth.**
+
+**Per embedder:**
+- `qwen3-embedding:0.6b` — 1734,5s · selected 89 · 1 embed-500 (GPU niet gemeten, vorige sessie).
+- `qwen3-embedding:4b` — **volledig GPU** (3,86 GB) · 6067,6s (relate 2071 · retrieve 3854) ·
+  selected 116 · 1 embed-500. Past op 6 GB, geen CPU-fallback, maar ~3,5× trager dan 0.6b.
+- `bge-m3` — **volledig GPU** (1,21 GB) · 1380,6s (relate 245 · retrieve 996) · selected 104 ·
+  **3 embed-500's** (meer dan de andere twee).
+
+**Overeenstemming (selected-ids, Jaccard | gedeeld):** 0.6b–4b 0,50 | 68 · 0.6b–bge 0,50 | 64 ·
+4b–bge 0,46 | 69. **Kern in alle drie: 55 docs** (`runs/bzk-embedder-core-55.txt`).
+
+**Score-verdeling (selected top-N):** 0.6b spreiding 0,107 (med 0,658) · 4b spreiding 0,150
+(med 0,669) · bge-m3 spreiding 0,109 (med 0,692). Alle scores uniek per run.
+
+**Bevindingen:** (1) embedder verandert de kern substantieel — hooguit ~halve overlap, 55/~100
+gedeeld. (2) De embed-500/nulvector-fallback treedt bij álle drie op, vooral in `relate` (de éne
+grote batch-embed van ~1000 docs); bge-m3 het vaakst. Dit is een latent auditability-gat (500
+staat alleen in de console-log, niet in `audit.jsonl`) — kandidaat voor een driver-level fix.
+(3) 4b is haalbaar op 6 GB maar traag; bge-m3 is veruit het snelst. **Geen model gepromoveerd tot
+default** — zonder qrels geen uitspraak over juistheid. Score-verdeling is alleen over de selected
+set (all-candidate scores worden niet gepersisteerd).
+
 ### 2026-06-27 — feat(observe): live voortgangsteller in ingest/retrieve + rijker criteria-paneel
 
 **Waarom:** `--observe` toonde per stap pas ná afloop een paneel; de lange per-item stappen
