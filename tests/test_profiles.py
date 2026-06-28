@@ -48,3 +48,33 @@ def test_local_providers_satisfy_runtime_protocols():
 
     assert isinstance(HashingEmbed(), EmbeddingProvider)
     assert isinstance(LexicalReranker(), RerankerProvider)
+
+
+# --- voorlopige default-embedder: bge-m3 (sovereign-default-embedder-bge-m3) -------------
+
+
+def test_default_ollama_embed_model_is_bge_m3():
+    assert _settings().ollama_embed_model == "bge-m3:latest"
+
+
+def test_sovereign_ollama_uses_bge_m3_default():
+    from zeef.drivers.ollama import OllamaEmbed
+
+    settings = Settings(_env_file=None, sovereign_embed="ollama")
+    bundle = resolve_providers(ProfileName.sovereign, no_llm=True, settings=settings)
+    assert isinstance(bundle.embed, OllamaEmbed)
+    assert bundle.embed.name == "ollama:bge-m3:latest"
+
+
+def test_ollama_embed_model_env_override_wins(monkeypatch):
+    # Andere embedders blijven via env-var beschikbaar.
+    monkeypatch.setenv("ZEEF_OLLAMA_EMBED_MODEL", "qwen3-embedding:0.6b")
+    settings = Settings(_env_file=None, sovereign_embed="ollama")
+    bundle = resolve_providers(ProfileName.sovereign, no_llm=True, settings=settings)
+    assert bundle.embed.name == "ollama:qwen3-embedding:0.6b"
+
+
+def test_default_sovereign_stays_air_gapped():
+    # Default-pad ongewijzigd: zonder ollama-opt-in blijft het deterministisch-lokaal.
+    bundle = resolve_providers(ProfileName.sovereign, no_llm=True, settings=_settings())
+    assert isinstance(bundle.embed, HashingEmbed)

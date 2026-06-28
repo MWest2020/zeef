@@ -6,6 +6,32 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-28 — feat(profiles): bge-m3 als VOORLOPIGE default Ollama-embedder (sovereign)
+
+**Waarom:** de oude default `ollama_embed_model = qwen3-embedding` is een bare tag die in Ollama
+niet eens resolvet, én de zwaarste optie. De drie-embedder-vergelijking op het BZK-corpus maakt
+`bge-m3` de beste *praktische* keuze onder de Ollama-embedders. Implementatie van OpenSpec-change
+`sovereign-default-embedder-bge-m3`.
+
+**Expliciet VOORLOPIG — geen juistheidsclaim.** De vergelijking mat **overeenstemming**, niet
+*welke embedder beter kiest* (blind corpus, geen qrels). bge-m3 is niet "beter in selecteren";
+het is de huidige beste praktische keuze. Definitieve default wacht op een ground-truth-meting
+(zie [[bzk-publication-groundtruth-verdict]]: publicatie-route bleek geen werkbare grondwaarheid).
+
+**Wat:** `config.py` default `ollama_embed_model` `qwen3-embedding` → **`bge-m3:latest`**.
+`sovereign_embed` blijft **`local`**: de standaard-sovereign blijft de deterministische,
+air-gapped HashingEmbed (geen server/gewichten) — de air-gapped-belofte en de offline-testsuite
+zijn ongemoeid. bge-m3 geldt alleen ná opt-in `ZEEF_SOVEREIGN_EMBED=ollama`. Andere embedders
+blijven kiesbaar via `ZEEF_OLLAMA_EMBED_MODEL`.
+
+**Onderbouwing (BZK, sovereign `--no-llm`, Ollama — overeenstemming, geen juistheid):** runtime
+bge-m3 23m vs qwen3-0.6b 29m vs qwen3-4b 1u41m · GPU 1,21 GB (vs 4b 3,86 GB) · score-spreiding
+vergelijkbaar/scherper (mediaan 0,69). Caveat: bge-m3 had meer embed-500/nulvector-fallbacks (3 vs 1).
+
+**Bestanden:** `config.py` (één default + toelichtende comment), `tests/test_profiles.py` (4 tests:
+default, ollama-opt-in→bge-m3, env-override wint, default-sovereign blijft air-gapped), README.
+**162→166 tests groen (1 skipped), ruff schoon, alle bestanden ≤200 regels.**
+
 ### 2026-06-28 — feat(observe): live voortgangsteller voor `relate` (driver-level embed-progress)
 
 **Waarom:** `ingest` en `retrieve` hadden al een teller, maar `relate` bleef stil — het embedt het

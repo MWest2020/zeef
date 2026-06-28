@@ -102,7 +102,11 @@ een korte samenvatting. Uitvoer: `discover-map.json` + een self-contained `repor
 zeef discover ./docs --profile sovereign
 ```
 
-Voor een geloofwaardige (semantische) landkaart: `ZEEF_SOVEREIGN_EMBED=ollama`. Onder `--no-llm`
+Voor een geloofwaardige (semantische) landkaart: `ZEEF_SOVEREIGN_EMBED=ollama`. De default
+Ollama-embedder is dan **`bge-m3:latest`** — een *voorlopige* keuze op praktische gronden (snelst,
+lichtst op GPU; overeenstemming, geen bewezen-betere selectie). Een andere kies je met
+`ZEEF_OLLAMA_EMBED_MODEL` (bv. `qwen3-embedding:0.6b`). De standaard-sovereign blijft de
+deterministische, air-gapped local-embedder (geen server nodig). Onder `--no-llm`
 blijven TF-IDF-labels over, zonder samenvattingen.
 
 `--score-top-k N` begrenst hoeveel reranked kandidaten de LLM-scoring beoordeelt (`0` = alle).

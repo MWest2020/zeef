@@ -37,7 +37,10 @@ class Settings(BaseSettings):
     auth_mode: str = "api_key"
     ollama_host: str = "http://localhost:11434"
     ollama_llm_model: str = "qwen3"
-    ollama_embed_model: str = "qwen3-embedding"
+    # Voorlopige default-embedder (sovereign + ZEEF_SOVEREIGN_EMBED=ollama): bge-m3 op praktische
+    # gronden (snelst, lichtst op GPU, vergelijkbare/scherpere score-spreiding — overeenstemming,
+    # geen juistheid; definitieve keuze wacht op ground-truth). Override via ZEEF_OLLAMA_EMBED_MODEL.
+    ollama_embed_model: str = "bge-m3:latest"
     # Max. tekens die we vóór het embedden afkappen (Ollama-embeds schalen ~lineair met lengte;
     # op CPU kost een 8000-char-embed ~8 s, een 2000-char-embed ~2 s). De near-dup-embed van de
     # volledige tekst is de duurste call op een groot corpus; het dedup-/relevantiesignaal zit in de
