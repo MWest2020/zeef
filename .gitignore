@@ -20,6 +20,7 @@ htmlcov/
 # Secrets — never commit (see CLAUDE.md policy)
 .env
 .env.*
+*.env
 *.pem
 *.key
 *_rsa
