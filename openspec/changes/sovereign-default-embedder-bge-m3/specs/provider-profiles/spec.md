@@ -2,7 +2,7 @@
 
 ### Requirement: Default sovereign Ollama embed model
 
-When the sovereign profile uses Ollama embeddings, the system SHALL default the Ollama embed model to `bge-m3:latest`, and this default SHALL be overridable via the `ZEEF_OLLAMA_EMBED_MODEL` environment variable. This is a provisional default chosen on practical grounds (lowest runtime and GPU footprint, and comparable/sharper score spread in an agreement-only comparison on the BZK corpus); it is NOT a claim that bge-m3 selects more relevant documents, and the final default awaits a ground-truth (recall) measurement.
+When the sovereign profile uses Ollama embeddings, the system SHALL default the Ollama embed model to `bge-m3:latest`, and this default SHALL be overridable via the `ZEEF_OLLAMA_EMBED_MODEL` environment variable. This is a provisional default chosen on practical grounds (lowest runtime and GPU footprint, and comparable/sharper score spread in an agreement-only comparison on the Woo corpus); it is NOT a claim that bge-m3 selects more relevant documents, and the final default awaits a ground-truth (recall) measurement.
 
 Changing this default SHALL NOT change the sovereign profile's default embedder: with no `ZEEF_SOVEREIGN_EMBED=ollama` opt-in, the sovereign profile MUST still resolve the deterministic, air-gapped local embedder (no server or weights required).
 

@@ -97,7 +97,7 @@ zelfverzekerd-foute oordelen van een te klein model.
 
 **Mitigatie (gemeten):** gate uit (`ZEEF_SCOPE_FILTER_LLM=false` of `--no-llm`) → op een
 ~1000-doc-corpus bereikten dan 889 docs retrieve i.p.v. de collapse
-(`runs/bzk-C-cloud/audit.jsonl`: `scope_filter_llm: false`, `undecided: 889`). Alternatief: een
+(`runs/woo-C-cloud/audit.jsonl`: `scope_filter_llm: false`, `undecided: 889`). Alternatief: een
 groter gate-model.
 
 ### 2. thread-tail recall-risico — STATUS: LATENT (niet-actief op PDF)
@@ -109,6 +109,6 @@ vallen → het hele thread verdwijnt pre-retrieve (gedocumenteerd in de docstrin
 `rule_thread_tail`, `scope_rules.py`). Waargenomen op een synthetisch e-mailcorpus (recall-cap 0.61).
 
 **Niet-actief op PDF-dossiers:** die missen e-mailheaders, dus de e-mail-only regel vuurt nooit.
-Bevestigd: **0 thread-tail-vuringen** op het BZK-PDF-corpus (`runs/bzk-C-cloud{,-v2}/audit.jsonl`:
+Bevestigd: **0 thread-tail-vuringen** op het Woo-PDF-corpus (`runs/woo-C-cloud{,-v2}/audit.jsonl`:
 111 scope-filter-exclusions, allemaal de oude dedup-regel, geen thread-tail). Geen fix nu; de
 recall-safe variant is een toekomstige OpenSpec-change zodra écht gethreade e-mail een use-case wordt.

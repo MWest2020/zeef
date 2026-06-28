@@ -6,7 +6,7 @@ spec thuishoren, maar die we voor de presentatie en voor de volgende dossiers ni
 verliezen. Bijwerken naarmate we verder leren.
 
 Context: bevindingen komen grotendeels uit de `discover-mode`-bouw, gevalideerd op een echt
-Woo-corpus van **414 PDF's (~1,7 GB)** van gemeente Gooise Meren e.o. — een breed gemengd
+Woo-corpus van **414 PDF's (~1,7 GB)** van een gemeente e.o. — een breed gemengd
 dossier (asielopvang/noodopvang, omgevingsvergunningen, stikstof, forten, windmolens,
 mijnsteen). 11 documenten zijn fotoscans zonder tekstlaag en vallen terecht uit de validity-gate
 (403 valide docs de pijplijn in).
@@ -136,11 +136,11 @@ de bodem verder verlagen — tegen extra embed-tijd.
 
 ---
 
-# 2026-06-25/26 — Overlap cosine-soeverein vs. cloud-Haiku (proxy-corpus Gooise Meren, 414 PDF's)
+# 2026-06-25/26 — Overlap cosine-soeverein vs. cloud-Haiku (proxy-corpus een gemeente, 414 PDF's)
 
 Volledig rapport: `runs/cloud-blind-20260625-215625/overlap_report.txt`.
 
-## Overlap cosine-soeverein vs cloud-Haiku (proxy-corpus Gooise Meren, 414 PDF's)
+## Overlap cosine-soeverein vs cloud-Haiku (proxy-corpus een gemeente, 414 PDF's)
 - Setup: identieke query "Woo-verzoek noodopvang asielzoekers", scope-gate off, `score_top_k=0`.
   Cosine-run: qwen3-embedding, `--no-llm`, 346 kandidaten, 89 geselecteerd, 346 unieke
   cosine-waarden. Cloud-run: Voyage-embed + Haiku-selector, 348 kandidaten, 91 geselecteerd.
@@ -172,5 +172,5 @@ Volledig rapport: `runs/cloud-blind-20260625-215625/overlap_report.txt`.
 - Dit is een **feit over twee verschillende pijplijnen op één proxy-corpus**, geen uitspraak over
   "cosine vs Haiku" geïsoleerd: embedding **én** selector verschillen tegelijk, plus
   truncatie-asymmetrie (Voyage 16000 vs qwen3 8000 chars). De overlap isoleert geen van beide assen.
-  **Geen "soeverein ≈ cloud"-conclusie.** En: geldt voor het Gooise Meren-proxy-corpus, niet
-  noodzakelijk voor de BZK-dataset.
+  **Geen "soeverein ≈ cloud"-conclusie.** En: geldt voor het een gemeente-proxy-corpus, niet
+  noodzakelijk voor de Woo-dataset.

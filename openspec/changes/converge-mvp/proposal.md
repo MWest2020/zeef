@@ -9,7 +9,7 @@ no open-source tool for it, even though the publication/search end of the chain
 
 `zeef` fills that gap: the missing open-source link *upstream* of the OpenWoo chain. It
 borrows the recall-oriented method from e-discovery / TAR (technology-assisted review)
-instead of inventing relevance ranking from scratch. The immediate driver is the BZK/ECP
+instead of inventing relevance ranking from scratch. The immediate driver is the Woo/ECP
 technical exploration on **26 June 2026**, where the tool must run on a supplied dataset
 and a refined search question and produce a defensible, fully traceable selection.
 

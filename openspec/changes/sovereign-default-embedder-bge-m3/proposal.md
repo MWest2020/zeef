@@ -3,7 +3,7 @@
 When the sovereign profile runs with Ollama embeddings (`ZEEF_SOVEREIGN_EMBED=ollama`), the
 default model is `qwen3-embedding` — a bare tag that does not even resolve in Ollama (no
 `:latest` exists), and the heaviest/slowest option benchmarked. A three-embedder comparison on
-the BZK corpus (read-only, no ground truth) makes `bge-m3` the best *practical* default among the
+the Woo corpus (read-only, no ground truth) makes `bge-m3` the best *practical* default among the
 Ollama options. This change makes it the default Ollama embed model.
 
 **This is an explicitly PROVISIONAL choice on practical grounds — not a correctness claim.**
@@ -20,7 +20,7 @@ qrels). bge-m3 is not shown to "choose better"; it is the current best practical
 - Other embedders remain selectable via `ZEEF_OLLAMA_EMBED_MODEL` (e.g. `qwen3-embedding:0.6b`,
   `qwen3-embedding:4b`).
 
-Evidence (BZK corpus, sovereign `--no-llm`, Ollama, identical query/cutoff — *agreement, not
+Evidence (Woo corpus, sovereign `--no-llm`, Ollama, identical query/cutoff — *agreement, not
 correctness*):
 - Runtime: bge-m3 **23m** vs qwen3-0.6b 29m vs qwen3-4b **1u41m**.
 - GPU footprint: bge-m3 **1,21 GB** (vs 4b 3,86 GB) — lightest, fully on a 6 GB GPU.

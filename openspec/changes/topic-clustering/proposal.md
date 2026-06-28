@@ -1,6 +1,6 @@
 ## Why
 
-One of the headline criteria for the BZK/ECP exploration is splitting the selection into
+One of the headline criteria for the Woo/ECP exploration is splitting the selection into
 sub-topics: *"divide the documents into sub-topics or categories, to present as a choice menu to
 the requester."* The pipeline does not produce this, and it is the largest open gap under the
 criteria measured on the day. On top of that, the `category` column in `inventory.xlsx` currently

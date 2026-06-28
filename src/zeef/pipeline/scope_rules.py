@@ -75,7 +75,7 @@ def rule_thread_tail(doc: Document) -> str | None:
     pre-retrieve. Waargenomen op een synthetisch e-mailcorpus (kunstmatig lege tips); een
     recall-cap van 0.61 daar.
     Kán NIET spelen op PDF-dossiers: die missen e-mailheaders, dus deze regel vuurt nooit
-    (bevestigd: 0 vuringen op het BZK-PDF-corpus). Wordt een Woo-verzoek ooit een écht gethread
+    (bevestigd: 0 vuringen op het Woo-PDF-corpus). Wordt een Woo-verzoek ooit een écht gethread
     e-mailcorpus, dan is de recall-safe variant (collapse alleen als de tip de validity-gate
     overleeft, anders het inhoudrijkste overlevende bericht behouden) een aparte OpenSpec-change.
     """

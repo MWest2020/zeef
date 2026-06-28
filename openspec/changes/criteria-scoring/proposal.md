@@ -11,7 +11,7 @@ relevance signal that decides the core selection is still thin and hard to defen
 - The only LLM judgement today is the scope-filter's binary RELEVANT/NIET-RELEVANT on edge
   cases — no graded relevance, no explanation.
 
-For the BZK/ECP exploration (26 June 2026) the differentiator is **defensible, explainable**
+For the Woo/ECP exploration (26 June 2026) the differentiator is **defensible, explainable**
 selection. A jury (and an auditor) wants to see the relevance criteria written down, and a
 per-document motivation for why it made — or missed — the core. That is exactly where an LLM
 earns its place: judgement under linguistic ambiguity with no mechanical ground truth, where

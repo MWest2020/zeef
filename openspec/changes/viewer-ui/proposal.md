@@ -4,7 +4,7 @@ The criteria require the result to be inspectable — **both the selected ~100 a
 the sub-topics to be presentable to the requester as a choice menu. For a government worker without
 training, a raw `inventory.xlsx` plus loose JSON files is not a menu. A single, self-contained HTML
 file that renders the run artifacts makes this tangible, and is at the same time the visible
-auditability demo where BZK wants to see the difference from classic tooling.
+auditability demo where Woo wants to see the difference from classic tooling.
 
 To show "the rest", the export must also write the full excluded set with reasons in a
 machine-readable form — the follow-up deferred from earlier changes lands here.

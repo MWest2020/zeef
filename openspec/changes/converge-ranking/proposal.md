@@ -1,7 +1,7 @@
 ## Why
 
 `discover` answers *what is in this corpus* without a query — clustering → a landkaart. That is a
-discovery aid, **not** the BZK/ECP deliverable. The deliverable is the other branch: **~1000
+discovery aid, **not** the Woo/ECP deliverable. The deliverable is the other branch: **~1000
 documents + one refined query → a documented, reproducible top-100 on relevance.** That branch
 (`converge`) exists as an MVP, but its selection signal has drifted and is no longer
 one-sentence-defensible:

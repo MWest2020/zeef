@@ -9,14 +9,14 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 ### 2026-06-28 — feat(profiles): bge-m3 als VOORLOPIGE default Ollama-embedder (sovereign)
 
 **Waarom:** de oude default `ollama_embed_model = qwen3-embedding` is een bare tag die in Ollama
-niet eens resolvet, én de zwaarste optie. De drie-embedder-vergelijking op het BZK-corpus maakt
+niet eens resolvet, én de zwaarste optie. De drie-embedder-vergelijking op het Woo-corpus maakt
 `bge-m3` de beste *praktische* keuze onder de Ollama-embedders. Implementatie van OpenSpec-change
 `sovereign-default-embedder-bge-m3`.
 
 **Expliciet VOORLOPIG — geen juistheidsclaim.** De vergelijking mat **overeenstemming**, niet
 *welke embedder beter kiest* (blind corpus, geen qrels). bge-m3 is niet "beter in selecteren";
 het is de huidige beste praktische keuze. Definitieve default wacht op een ground-truth-meting
-(zie [[bzk-publication-groundtruth-verdict]]: publicatie-route bleek geen werkbare grondwaarheid).
+(zie [[woo-publication-groundtruth-verdict]]: publicatie-route bleek geen werkbare grondwaarheid).
 
 **Wat:** `config.py` default `ollama_embed_model` `qwen3-embedding` → **`bge-m3:latest`**.
 `sovereign_embed` blijft **`local`**: de standaard-sovereign blijft de deterministische,
@@ -24,7 +24,7 @@ air-gapped HashingEmbed (geen server/gewichten) — de air-gapped-belofte en de 
 zijn ongemoeid. bge-m3 geldt alleen ná opt-in `ZEEF_SOVEREIGN_EMBED=ollama`. Andere embedders
 blijven kiesbaar via `ZEEF_OLLAMA_EMBED_MODEL`.
 
-**Onderbouwing (BZK, sovereign `--no-llm`, Ollama — overeenstemming, geen juistheid):** runtime
+**Onderbouwing (Woo, sovereign `--no-llm`, Ollama — overeenstemming, geen juistheid):** runtime
 bge-m3 23m vs qwen3-0.6b 29m vs qwen3-4b 1u41m · GPU 1,21 GB (vs 4b 3,86 GB) · score-spreiding
 vergelijkbaar/scherper (mediaan 0,69). Caveat: bge-m3 had meer embed-500/nulvector-fallbacks (3 vs 1).
 
@@ -37,7 +37,7 @@ default, ollama-opt-in→bge-m3, env-override wint, default-sovereign blijft air
 **Waarom:** `ingest` en `retrieve` hadden al een teller, maar `relate` bleef stil — het embedt het
 hele corpus voor near-dup-bevestiging in **één batch-call** (`dedup.py`), dus er is geen Python-loop
 in de stap om tussen te tellen; de traagheid (en de terugkerende embed-500/nulvector) zit binnen de
-embedder. Op BZK was dit 245s–2071s zonder output. Implementatie van OpenSpec-change
+embedder. Op Woo was dit 245s–2071s zonder output. Implementatie van OpenSpec-change
 `observe-relate-progress`.
 
 **Wat:** `EmbeddingProvider.embed` krijgt een **optionele keyword `progress`-callback** (`(done,
@@ -55,12 +55,12 @@ ranking/selectie/artefacten ongemoeid.
 **157→162 tests groen (1 skipped), ruff schoon, alle bestanden ≤200 regels.** Smoke fixture:
 `relate: embedded N/14` mét `--observe`, nul zonder.
 
-### 2026-06-28 — experiment(embedder): drie Ollama-embedders op BZK (0.6b / 4b / bge-m3)
+### 2026-06-28 — experiment(embedder): drie Ollama-embedders op Woo (0.6b / 4b / bge-m3)
 
 **Waarom:** vaststellen wat de embedder-keuze doet met de selectie én wat praktisch haalbaar is
 op deze hardware (RTX 3060 Laptop, 6 GB VRAM). Drie `--observe`-runs, sovereign `--no-llm`,
 zelfde query/cutoff (target=100), `ZEEF_SOVEREIGN_EMBED=ollama`, alleen de embedder verschilt.
-Read-only, geen pijplijn-code gewijzigd; runs in (gitignored) `runs/bzk-{A-sovereign-ollama,
+Read-only, geen pijplijn-code gewijzigd; runs in (gitignored) `runs/woo-{A-sovereign-ollama,
 B-qwen3-4b,bge-m3}/`. **Feiten, geen oordeel — blind corpus, geen ground truth.**
 
 **Per embedder:**
@@ -71,7 +71,7 @@ B-qwen3-4b,bge-m3}/`. **Feiten, geen oordeel — blind corpus, geen ground truth
   **3 embed-500's** (meer dan de andere twee).
 
 **Overeenstemming (selected-ids, Jaccard | gedeeld):** 0.6b–4b 0,50 | 68 · 0.6b–bge 0,50 | 64 ·
-4b–bge 0,46 | 69. **Kern in alle drie: 55 docs** (`runs/bzk-embedder-core-55.txt`).
+4b–bge 0,46 | 69. **Kern in alle drie: 55 docs** (`runs/woo-embedder-core-55.txt`).
 
 **Score-verdeling (selected top-N):** 0.6b spreiding 0,107 (med 0,658) · 4b spreiding 0,150
 (med 0,669) · bge-m3 spreiding 0,109 (med 0,692). Alle scores uniek per run.
@@ -127,11 +127,11 @@ validator leest alleen de **eerste regel** van een requirement → SHALL/MUST mo
 **Bestanden:** nieuw `openspec/changes/observe-embed-progress/` (proposal/design/specs/tasks).
 Implementatie volgt via `/opsx:apply`.
 
-### 2026-06-27 — experiment(embedder): hashing vs Ollama qwen3-embedding op BZK-corpus
+### 2026-06-27 — experiment(embedder): hashing vs Ollama qwen3-embedding op Woo-corpus
 
-**Waarom:** vaststellen wat de embedder-keuze doet met de selectie op het echte BZK-corpus
+**Waarom:** vaststellen wat de embedder-keuze doet met de selectie op het echte Woo-corpus
 (`Stukken technische verkenning`, 1001 PDF's), zelfde query/profiel/`--no-llm`. Read-only,
-geen code gewijzigd; runs in (gitignored) `runs/bzk-A-sovereign{,-ollama}/`.
+geen code gewijzigd; runs in (gitignored) `runs/woo-A-sovereign{,-ollama}/`.
 
 **Wat (bevindingen):**
 - **Runtime:** hashing 151,7s → Ollama `qwen3-embedding:0.6b` 1734,5s (~11×).
@@ -183,7 +183,7 @@ pre-retrieve weg. Diagnose: geen embedder- of dedup-kwestie, maar een interactie
 **Wat:** docstring met BEKEND RECALL-RISICO op `rule_thread_tail` in
 `src/zeef/pipeline/scope_rules.py`. Het risico is **latent, niet-actief**: het vereist
 RFC 5322-gethreade e-mail; PDF-dossiers missen die headers, dus de regel vuurt daar nooit
-(bevestigd: **0 vuringen** op het BZK-PDF-corpus, waar enkel de dedup-regel vuurde). De
+(bevestigd: **0 vuringen** op het Woo-PDF-corpus, waar enkel de dedup-regel vuurde). De
 waargenomen 0.61-cap kwam van een synthetisch e-mailcorpus met kunstmatig lege tips. **Geen
 code-fix.** Wordt een écht gethread e-mailcorpus ooit een use-case, dan is de recall-safe
 thread-tail (collapse alleen als de tip de validity-gate overleeft) een aparte OpenSpec-change.
@@ -842,7 +842,7 @@ na review van de acceptatietest en de egress-vraag van 26 juni.
 **Wat:** repo opgezet, OpenSpec change #1 (`converge-mvp`) opgesteld en gevalideerd,
 projectscaffold, Q&A-document, documentatie-site (Hugo) en HTML-presentatie aangezet.
 
-**Waarom:** kickoff voor de technische verkenning Woo (BZK/ECP) op 26 juni 2026. De tool moet
+**Waarom:** kickoff voor de technische verkenning Woo (Woo/ECP) op 26 juni 2026. De tool moet
 die dag op een aangeleverde dataset + verfijnde zoekvraag draaien en een navolgbare selectie
 opleveren.
 

@@ -3,7 +3,7 @@
 The previous change (`observe-embed-progress`) gave `ingest` and `retrieve` live counters,
 but `relate` stayed silent. `relate` embeds the whole corpus for near-duplicate confirmation
 in **one batch call** (`embed.embed([d.text for d in targets])` in `dedup.py`), so there is no
-Python loop in the stage to count between — the slowness lives inside the embedder. On the BZK
+Python loop in the stage to count between — the slowness lives inside the embedder. On the Woo
 corpus with Ollama this stage took 245s–2071s with no output, the last silent stretch under
 `--observe`. The same single batch is also where the recurring embed-500/nulvector-fallback
 fires, unseen until the stage ends.

@@ -39,6 +39,6 @@ in a commit message.
 
 - [User on Ollama path silently gets a different model than before] → It only affects opt-in
   Ollama runs; documented in README/CHANGELOG; any prior model stays reachable via the env-var.
-- [bge-m3 had more embed-500/nulvector fallbacks in the BZK run (3 vs 1)] → Noted as a known
+- [bge-m3 had more embed-500/nulvector fallbacks in the Woo run (3 vs 1)] → Noted as a known
   caveat; it does not change the practical speed/footprint case and is orthogonal (a driver-level
   logging concern already tracked separately).

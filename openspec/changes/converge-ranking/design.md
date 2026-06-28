@@ -3,7 +3,7 @@
 `zeef` now has two branches over the same deterministic spine (ingest → validity → relate →
 scope-filter → embed → … → export). `discover` (changes already shipped) clusters the whole valid
 corpus into a query-less landkaart. `converge` (changes #1/#2) takes a refined query and produces a
-core selection. The BZK/ECP deliverable is the **converge** result: ~1000 documents + one refined
+core selection. The Woo/ECP deliverable is the **converge** result: ~1000 documents + one refined
 query → a documented, reproducible top-100 on relevance.
 
 The risk this change closes: the selection signal has become a multi-stage, partly-LLM score
