@@ -44,5 +44,5 @@
 
 - [x] 7.1 `docs/.../de-pijplijn.md`: add the criteria + scoring stages; update the stage table and the "what drives top-X" story
 - [x] 7.2 `docs/.../architectuur.md`: record the D9 "LLM or not" rule and the criteria/scoring touchpoints
-- [x] 7.3 README + `presentation/index.html`: reflect criteria-articulation + explainable scoring with rationale
+- [x] 7.3 README: reflect criteria-articulation + explainable scoring with rationale
 - [x] 7.4 `CHANGELOG.md`: dated entry for change #2 (what, why, files, test result)

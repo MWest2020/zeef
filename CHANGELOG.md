@@ -162,21 +162,15 @@ zelfde bron als het run-manifest), niet gehardcodeerd.
 `config.py` (`observe`-setting voor `ZEEF_OBSERVE`). README usage bijgewerkt. Default-uit-run is
 byte-identiek aan voorheen; 148 tests groen, ruff schoon, alle bestanden ≤200 regels.
 
-### 2026-06-27 — docs(pipeline): stap-doc scope-filter + verlies-inventarisatie
+### 2026-06-27 — docs(pipeline): stap-doc scope-filter
 
-**Waarom:** een vast sjabloon bewijzen op de complexste stap, en data-gedreven vaststellen waar in de
-pijplijn documenten (en relevante docs) verdwijnen, zodat de optimalisatie-volgorde door meting wordt
-bepaald.
+**Waarom:** een vast sjabloon bewijzen op de complexste stap (scope-filter).
 
-**Wat:** twee read-only docs (geen code gewijzigd):
+**Wat:** één read-only doc (geen code gewijzigd):
 - `docs/pipeline/scope-filter.md` — sjabloon-proof: doel, input/output, beslissing (regels + LLM-gate),
   knoppen (`ZEEF_SCOPE_FILTER_LLM`, `ZEEF_OLLAMA_LLM_MODEL`), lokaal/hybride/cloud, Mermaid-flow, en
   valkuilen mét status (scope-collapse ACTIEF; thread-tail LATENT). Elke claim met code- of
   audit-verwijzing.
-- `docs/pipeline/loss-inventory.md` — per-stap verlies-tabel uit bestaande audits (EVAL-qrels, BZK-PDF,
-  Gooise Meren). Kernbevinding: grootste recall-verlies = scope-LLM-gate op klein model (414→4, 349
-  UITSLUITEN); met gate uit is verlies corpus-afhankelijk (e-mail: validity 53 + thread-tail 27 relevant;
-  PDF: ~0). De bake-off-uitdunning (145/1006) is een e-mail-corpus-confound, niet de embedder.
 
 ### 2026-06-27 — docs(scope-rules): thread-tail recall-risico vastgelegd (latent, geen fix)
 
@@ -271,21 +265,6 @@ faalmodus. De top-100 was niet in één zin te verdedigen. Implementatie van Ope
 ranking + query-onafhankelijke tiebreak, max-chunk, cluster filtert niet, determinisme, report-why);
 `tests/test_score.py` + `tests/test_scope_filter.py` herschreven naar het nieuwe contract. Volledige
 suite **142 passed, 1 skipped**; ruff schoon.
-
-### 2026-06-26 — docs(presentation): PowerPoint-export van de BZK/ECP-pitch
-
-**Waarom:** de pitch-deck bestond alleen als reveal.js (`presentation/verkenning-bzk.html`,
-offline `file://`). Voor delen/bewerken in PowerPoint was een native `.pptx` gewenst.
-
-**Wat:**
-- Nieuw `presentation/verkenning-bzk.pptx` — 9 slides, 16:9, getrouwe export van de HTML-deck.
-  Tekst, tabel, kaarten en de trechter zijn **native, bewerkbare** PPTX-objecten; de speaker
-  notes uit `<aside class="notes">` zijn overgenomen in de notitievelden.
-- De twee SVG-diagrammen (double-diamond, venn) en het logo zijn gerasterd via `rsvg-convert`;
-  de twee échte rapport-embeds (`embeds/converge-report.html`, `discover-report.html`) zijn als
-  screenshot ingesloten via headless Chrome.
-- Reproduceerbaar buildscript + tussenartefacten in `presentation/pptx-build/`
-  (`build_pptx.py`, `diamond.svg`, `venn.svg`, `img/`). `verkenning-bzk.html` is niet aangeraakt.
 
 ### 2026-06-25 — feat(cloud): Voyage transport-hardening (branch `change/voyage-transport-hardening`, NIET op main)
 
@@ -881,8 +860,7 @@ opleveren.
   (`zeef converge` met cutoff-vlagvalidatie).
 - Rooktests (`tests/test_models.py`) — 3 passed.
 - `LICENSE` (EUPL-1.2, officiële SPDX-tekst), `README.md`, `.gitignore`.
-- `hackathon/qa-technische-verkenning.md` — levend Q&A-document voor 26 juni.
-- Documentatie-site (Hugo) in `docs/` en HTML-presentatie in `presentation/`.
+- Documentatie-site (Hugo) in `docs/`.
 
 **Licentie:** EUPL-1.2 (aansluitend bij Common Ground / NL-overheid).
 
