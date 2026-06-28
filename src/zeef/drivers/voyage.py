@@ -103,16 +103,21 @@ class VoyageEmbed:
         self._max_original_len = 0
         self._requests = 0
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed(self, texts: list[str], *, progress=None) -> list[list[float]]:
         prepared, truncated, max_orig = _truncate(texts, self.embed_chars)
         self._truncated_inputs += truncated
         self._max_original_len = max(self._max_original_len, max_orig)
         out: list[list[float] | None] = [None] * len(prepared)
+        total = len(prepared)
+        done = 0
         for start, batch in _batches(prepared, self.batch_size, self.batch_chars):
             res = self._client._post("/embeddings", {"model": self.model, "input": batch})
             self._requests += 1
             for row in res["data"]:
                 out[start + int(row["index"])] = [float(x) for x in row["embedding"]]
+            done += len(batch)
+            if progress is not None:
+                progress(done, total)
         return [v for v in out if v is not None]
 
     def transport_stats(self) -> dict:

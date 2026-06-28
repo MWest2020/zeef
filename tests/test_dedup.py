@@ -20,7 +20,7 @@ class FakeEmbed:
     def __init__(self, vecs):
         self._vecs = vecs
 
-    def embed(self, texts):
+    def embed(self, texts, *, progress=None):
         return [self._vecs[t] for t in texts]
 
 

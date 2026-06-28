@@ -36,13 +36,16 @@ class HashingEmbed:
     def __init__(self, dim: int = EMBED_DIM) -> None:
         self.dim = dim
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed(self, texts: list[str], *, progress=None) -> list[list[float]]:
         out: list[list[float]] = []
-        for text in texts:
+        total = len(texts)
+        for i, text in enumerate(texts, start=1):
             vec = [0.0] * self.dim
             for tok in tokenize(text):
                 vec[_bucket(tok, self.dim)] += 1.0
             out.append(l2_normalize(vec))
+            if progress is not None:
+                progress(i, total)
         return out
 
 

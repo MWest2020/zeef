@@ -8,7 +8,7 @@ driver. Dat is precies wat `cloud` ↔ `sovereign` tot een vlag maakt i.p.v. een
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Callable, Protocol, runtime_checkable
 
 from zeef.models import Document
 
@@ -26,7 +26,9 @@ class Loader(Protocol):
 class EmbeddingProvider(Protocol):
     """Zet teksten om naar embedding-vectoren."""
 
-    def embed(self, texts: list[str]) -> list[list[float]]: ...
+    def embed(
+        self, texts: list[str], *, progress: Callable[[int, int], None] | None = None
+    ) -> list[list[float]]: ...
 
 
 @runtime_checkable

@@ -121,7 +121,6 @@ def run_converge(
     run_started = datetime.now(timezone.utc)
     wall_started = time.perf_counter()
 
-    # Per-item voortgang alleen onder --observe (anders None → no-op in de stages).
     item_progress = (lambda s: observer.progress_for(s)) if observer else (lambda s: None)
 
     criteria = run_stage("criteria", lambda: articulate_criteria(query, providers, audit))
@@ -129,7 +128,8 @@ def run_converge(
     run_stage("validity", lambda: validity_gate(docs, audit, min_chars=validity_min_chars,
         redaction_ratio_threshold=redaction_ratio_threshold))
     run_stage("relate", lambda: relate(docs, providers.embed, audit,
-        near_dup_threshold=near_dup_threshold, overlap_threshold=overlap_threshold))
+        near_dup_threshold=near_dup_threshold, overlap_threshold=overlap_threshold,
+        progress=item_progress("relate")))
     run_stage("scope-filter", lambda: scope_filter(docs, providers, audit, query))
     candidates = run_stage("retrieve", lambda: retrieve(
         docs, providers.embed, audit, query, progress=item_progress("retrieve")))

@@ -6,6 +6,29 @@ versies volgen [SemVer](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### 2026-06-28 — feat(observe): live voortgangsteller voor `relate` (driver-level embed-progress)
+
+**Waarom:** `ingest` en `retrieve` hadden al een teller, maar `relate` bleef stil — het embedt het
+hele corpus voor near-dup-bevestiging in **één batch-call** (`dedup.py`), dus er is geen Python-loop
+in de stap om tussen te tellen; de traagheid (en de terugkerende embed-500/nulvector) zit binnen de
+embedder. Op BZK was dit 245s–2071s zonder output. Implementatie van OpenSpec-change
+`observe-relate-progress`.
+
+**Wat:** `EmbeddingProvider.embed` krijgt een **optionele keyword `progress`-callback** (`(done,
+total)`, default `None`); de drivers roepen 'm aan terwijl ze de lijst afwerken (Ollama + lokaal per
+tekst, Voyage per batch). De callback wordt expliciet doorgegeven: `run.py → relate →
+link_near_duplicates → embed.embed(progress=…)`. Alleen `relate` geeft 'm door (onder `--observe`);
+`retrieve` houdt z'n eigen per-doc-teller. Geen mutabele driver-state, geen gedrag-/contract-wijziging
+(`embed(texts)` geeft nog steeds één vector per input in volgorde); **no-op als observe uit staat**,
+ranking/selectie/artefacten ongemoeid.
+
+**Bestanden:** `protocols.py` (`embed`-signatuur), drivers `ollama.py`/`local.py`/`voyage.py`,
+`pipeline/dedup.py`, `pipeline/relate.py`, `pipeline/run.py` (relate-bedrading; comment geschrapt om
+≤200 regels te blijven), `observe.py` (`relate`-verb). Nieuw `tests/test_relate_progress.py` (5 tests);
+`test_dedup.py` FakeEmbed-double bijgewerkt met `progress`. README `--observe` bijgewerkt.
+**157→162 tests groen (1 skipped), ruff schoon, alle bestanden ≤200 regels.** Smoke fixture:
+`relate: embedded N/14` mét `--observe`, nul zonder.
+
 ### 2026-06-28 — experiment(embedder): drie Ollama-embedders op BZK (0.6b / 4b / bge-m3)
 
 **Waarom:** vaststellen wat de embedder-keuze doet met de selectie én wat praktisch haalbaar is

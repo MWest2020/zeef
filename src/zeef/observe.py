@@ -22,7 +22,8 @@ from rich.table import Table
 from zeef.observe_blocks import build
 
 # Werkwoord per stap voor de voortgangsregel (alleen cosmetisch).
-_PROGRESS_VERB = {"ingest": "ingelezen", "retrieve": "embedded", "embed": "embedded"}
+_PROGRESS_VERB = {"ingest": "ingelezen", "relate": "embedded", "retrieve": "embedded",
+                  "embed": "embedded"}
 
 # Korte, statische stap-omschrijving (de cijfers/provider komen uit de run zelf).
 _TITLES = {

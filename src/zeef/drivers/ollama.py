@@ -54,7 +54,7 @@ class OllamaEmbed:
         self._char_budget = char_budget
         self._dim = 0  # modeldimensie, onthouden zodra één embed lukt (voor uniforme fallback)
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed(self, texts: list[str], *, progress=None) -> list[list[float]]:
         # Per tekst: clip, dan één retry op een transiënte server-fout (Ollama geeft op een groot
         # corpus soms een 500 na honderden calls). Faalt het hardnekkig, of geeft het model een lege
         # embedding (waargenomen bij lege invoer), dan vullen we een nulvector van de modeldimensie —
@@ -64,12 +64,15 @@ class OllamaEmbed:
         # uniforme nulvectoren geeft zolang ergens eerder één embed lukte. Pas als nog nóóit één
         # embed lukte is de dimensie onbekend en geven we een lege vector (lengte 0, óók uniform).
         raw: list[list[float] | None] = []
-        for text in texts:
+        total = len(texts)
+        for i, text in enumerate(texts, start=1):
             clipped = text[: self._char_budget].strip()
             vec = self._embed_one(clipped) if clipped else None
             if vec:
                 self._dim = len(vec)
             raw.append(vec)
+            if progress is not None:
+                progress(i, total)
         return [v if v else [0.0] * self._dim for v in raw]
 
     def _embed_one(self, prompt: str) -> list[float] | None:

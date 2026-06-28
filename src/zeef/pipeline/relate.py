@@ -25,12 +25,16 @@ def relate(
     *,
     near_dup_threshold: float = DEFAULT_NEAR_DUP_THRESHOLD,
     overlap_threshold: float = DEFAULT_OVERLAP_THRESHOLD,
+    progress=None,
 ) -> list[Document]:
-    """Bouw thread-, duplicaat- en overlap-relaties op de documenten (in-place) en retourneer ze."""
+    """Bouw thread-, duplicaat- en overlap-relaties op de documenten (in-place) en retourneer ze.
+
+    `progress` (optioneel, alleen onder `--observe`) wordt tijdens de near-dup-embedding per
+    document aangeroepen met (verwerkt, totaal); puur cosmetisch, raakt de relaties niet."""
     reconstruct_threads(docs, audit)
     annotate_thread_clusters(docs)
     link_exact_duplicates(docs, audit)
-    link_near_duplicates(docs, embed, audit, near_dup_threshold, overlap_threshold)
+    link_near_duplicates(docs, embed, audit, near_dup_threshold, overlap_threshold, progress=progress)
     audit.event(STAGE, "relate-complete", inputs={
         "documents": len(docs),
         "duplicates": sum(1 for d in docs if any(r.kind == "duplicate-of" for r in d.relations)),

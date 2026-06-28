@@ -84,7 +84,7 @@ zeef converge ./docs --query "..." --profile sovereign --no-llm --target 100
 
 **Stap voor stap meekijken** — `--observe` (of `ZEEF_OBSERVE=1`) print tijdens de run per stap een
 leesbaar paneel: input/output-aantallen, welke beslissing de stap nam (regel/model/berekening) en of
-de stap soeverein (lokaal) of in de cloud draaide. De lange per-item stappen (`ingest` en `retrieve`)
+de stap soeverein (lokaal) of in de cloud draaide. De lange per-item stappen (`ingest`, `relate` en `retrieve`)
 tonen bovendien een voortgangsteller (`retrieve: embedded 200/868`, ~20 updates per stap), zodat een
 run op een groot corpus live te volgen is in plaats van minutenlang stil te lijken. Default uit;
 verandert het runresultaat niet, het leest alleen de audit-trail die de pijplijn al schrijft.

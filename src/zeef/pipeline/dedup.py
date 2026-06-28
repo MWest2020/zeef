@@ -43,7 +43,7 @@ def link_exact_duplicates(docs: list[Document], audit: AuditLog) -> None:
 
 def link_near_duplicates(
     docs: list[Document], embed: EmbeddingProvider, audit: AuditLog, threshold: float,
-    overlap_threshold: float = 1.0,
+    overlap_threshold: float = 1.0, *, progress=None,
 ) -> None:
     """Bevestig MinHash-kandidaten met embedding-cosinus. `cos ≥ threshold` → `duplicate-of`; daar
     net onder, in `[overlap_threshold, threshold)` → `overlaps-with` (partiële overlap, geen
@@ -53,7 +53,7 @@ def link_near_duplicates(
         audit.event(STAGE, "near-dup-skipped", inputs={"reason": "datasketch niet beschikbaar"})
         return
     targets = [d for d in docs if d.text]
-    vecs = {d.id: v for d, v in zip(targets, embed.embed([d.text for d in targets]))}
+    vecs = {d.id: v for d, v in zip(targets, embed.embed([d.text for d in targets], progress=progress))}
     model = getattr(embed, "name", "?")
     for a, b in candidates:
         if _is_dup(a) or _is_dup(b) or a.id not in vecs or b.id not in vecs:
