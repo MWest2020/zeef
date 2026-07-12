@@ -1,3 +1,8 @@
+---
+status: draft
+last_reviewed: 2026-07-12
+---
+
 # Pijplijnstap: scope-filter
 
 > Sjabloon-proof. Elke claim is onderbouwd met een code-verwijzing of een run-artefact.
