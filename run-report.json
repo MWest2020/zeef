@@ -1,0 +1,13 @@
+{
+  "role": "builder",
+  "change": "apply-docs-contract",
+  "run_id": "builder-apply-docs-contract-20260712-182742",
+  "repo": "https://github.com/MWest2020/zeef.git",
+  "verdict": "ok",
+  "subtype": "success",
+  "total_cost_usd": "2.1351315",
+  "num_turns": "30",
+  "claude_exit": "0",
+  "finished_at": "2026-07-12T18:34:41Z",
+  "diff_hash": "70e0f415737d244ab33dc8eddec7ac249fdf3cf8d2e167f3a79836034166b5b0"
+}
