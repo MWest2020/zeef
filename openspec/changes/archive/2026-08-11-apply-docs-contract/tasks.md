@@ -24,6 +24,6 @@
       markdown, elke pagina heeft front matter, één taal (Nederlands).
       _(Geverifieerd: geen Hugo-shortcodes meer in `docs/`, alle interne
       `.md`-links resolven, alleen `how-to/`/`reference/`/`explanation/` + `index.md`.)_
-- [ ] 4.1 PR openen met titel `docs: apply handbook docs contract`; body vinkt
+- [x] 4.1 PR openen met titel `docs: apply handbook docs contract`; body vinkt
       per contractpunt af wat is toegepast + vermeldt de punten die de
       proposal als "PR-body" markeert. STOP daarna: Mark merget.
