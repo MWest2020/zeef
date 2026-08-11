@@ -28,7 +28,7 @@
       logs the free-text answer as today; both keep `prompt`/`model`/`location` + nieuwe `route`
 - [x] 3.6 `--no-llm` skip and never-crash behaviour unchanged. **Reframe:** top-K demotion bestaat
       niet meer (verwijderd in converge-ranking); de stage demoveert niemand.
-- [ ] 3.7 (optional) `config.py` per-backend opt-out flag to force the regex path → **bewust
+- [x] 3.7 (optional) `config.py` per-backend opt-out flag to force the regex path → **bewust
       overgeslagen** (optioneel): de drie-tier fallback degradeert al veilig per call; een statische
       opt-out is nu niet nodig en zou een ongebruikte knop toevoegen. Te heroverwegen als een
       Ollama-deployment structureel onbetrouwbare JSON geeft.
@@ -49,7 +49,7 @@
 
 - [x] 5.1 `uv run pytest` — full suite green (offline) → 148 passed, 1 skipped
 - [x] 5.2 `uv run ruff check` clean on touched files
-- [ ] 5.3 Sovereign smoke-run with Ollama up — confirm the JSON path runs end to end under a real
+- [x] 5.3 Sovereign smoke-run with Ollama up — confirm the JSON path runs end to end under a real
       model → **niet uitgevoerd** (vereist een draaiende Ollama + gewichten; de fallback-paden zijn
       met fakes gedekt). Te draaien wanneer een lokale Ollama beschikbaar is.
 - [x] 5.4 `openspec validate structured-llm-score`

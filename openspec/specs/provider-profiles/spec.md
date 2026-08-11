@@ -54,3 +54,60 @@ fail loudly when the candidate set cannot fit a single request, rather than spli
 - **AND** if the candidate set still cannot fit a single request, the call fails loudly rather
   than splitting the documents
 
+### Requirement: Profile selects providers without code change
+The system SHALL select its `LLMProvider`, `EmbeddingProvider`, and `RerankerProvider`
+implementations from a profile chosen with `--profile {cloud,sovereign}`. The pipeline stages
+SHALL receive providers by injection and SHALL NOT import concrete drivers directly. Switching
+between `cloud` and `sovereign` SHALL require only the flag, no code change.
+
+#### Scenario: Same pipeline, different drivers
+- **WHEN** the same converge command is run once with `--profile cloud` and once with
+  `--profile sovereign`
+- **THEN** both runs execute the identical pipeline, differing only in the resolved providers
+
+#### Scenario: Sovereign makes no external network calls
+- **WHEN** a run uses `--profile sovereign`
+- **THEN** no provider call leaves the local machine (default-deny egress)
+
+### Requirement: No-LLM fallback
+The system SHALL support a `--no-llm` flag that replaces the LLM provider with a null
+implementation, causes the scope-filter to use rules only, and causes selection to rely on
+embedding and rerank scores only. A `--no-llm` run SHALL complete without invoking any
+generative model.
+
+#### Scenario: Generative steps skipped
+- **WHEN** a run uses `--no-llm`
+- **THEN** no LLM completion is requested and the run still produces a selection
+
+### Requirement: Secrets never in code or config files
+Cloud provider credentials SHALL be read from environment variables or a SOPS+age reference and
+SHALL NOT appear in source code or committed configuration files.
+
+#### Scenario: Cloud key sourced from environment
+- **WHEN** the `cloud` profile needs an API key
+- **THEN** it is read from the environment, not from a config file in the repository
+
+### Requirement: Default sovereign Ollama embed model
+
+When the sovereign profile uses Ollama embeddings, the system SHALL default the Ollama embed model to `bge-m3:latest`, and this default SHALL be overridable via the `ZEEF_OLLAMA_EMBED_MODEL` environment variable. This is a provisional default chosen on practical grounds (lowest runtime and GPU footprint, and comparable/sharper score spread in an agreement-only comparison on the Woo corpus); it is NOT a claim that bge-m3 selects more relevant documents, and the final default awaits a ground-truth (recall) measurement.
+
+Changing this default SHALL NOT change the sovereign profile's default embedder: with no `ZEEF_SOVEREIGN_EMBED=ollama` opt-in, the sovereign profile MUST still resolve the deterministic, air-gapped local embedder (no server or weights required).
+
+#### Scenario: Ollama opt-in uses bge-m3 by default
+
+- **WHEN** the sovereign profile is resolved with `ZEEF_SOVEREIGN_EMBED=ollama` and no
+  `ZEEF_OLLAMA_EMBED_MODEL` set
+- **THEN** the embedding provider is Ollama with model `bge-m3:latest`
+
+#### Scenario: Env-var overrides the default
+
+- **WHEN** `ZEEF_OLLAMA_EMBED_MODEL` is set (e.g. `qwen3-embedding:0.6b`) with
+  `ZEEF_SOVEREIGN_EMBED=ollama`
+- **THEN** the embedding provider uses the env-var model, not the default
+
+#### Scenario: Default sovereign stays air-gapped
+
+- **WHEN** the sovereign profile is resolved without `ZEEF_SOVEREIGN_EMBED=ollama`
+- **THEN** the embedding provider is the deterministic local embedder, requiring no server or
+  network
+
