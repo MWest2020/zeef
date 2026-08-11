@@ -1,44 +1,4 @@
-# retrieve-rerank Specification
-
-## Purpose
-TBD - created by archiving change converge-mvp. Update Purpose after archive.
-## Requirements
-### Requirement: Chunk and embed documents
-The system SHALL chunk long documents and embed them through an `EmbeddingProvider`, storing
-embeddings on the chunks. Chunking SHALL be deterministic for a given document and chunk size.
-
-#### Scenario: Long document is chunked before embedding
-- **WHEN** a document exceeds the configured chunk size
-- **THEN** it is split into ordered chunks and each chunk receives an embedding
-
-### Requirement: First-pass retrieval against the refined query
-The system SHALL compute relevance as the **maximum cosine of the document's chunk embeddings to the
-query embedding** (the best-matching passage), and SHALL set this as the `final` score on **every**
-candidate (alongside a recorded `embed_sim`/`relevance`). This passage-level cosine — not a
-whole-document embedding — is the relevance signal and the input to selection (design D15);
-whole-document relevance is recorded as a rejected, recall-inferior alternative. The audit rule is
-one sentence: *cosine of the best-matching passage to the query.*
-
-#### Scenario: Query scores each candidate by its best passage, as `final`
-- **WHEN** retrieval runs for a refined query
-- **THEN** each candidate's `final` score equals the maximum cosine of its chunk embeddings to the
-  query (the best-matching passage)
-
-#### Scenario: Relevance is passage-level, not whole-document
-- **WHEN** a long document is relevant only in one passage
-- **THEN** its relevance reflects that passage's cosine and is not averaged away across the document
-
-### Requirement: Precision rerank pass
-The cross-encoder/LLM rerank pass SHALL NOT be the selector and SHALL NOT write the `final` score.
-When a `RerankerProvider` is present it MAY record a `rerank` score as a **side-score** for
-inspection only; the documented, reproducible selection is driven by the relevance ranking
-(`relevance-ranking`). In the sovereign profile, which has no reranker model, no rerank pass is
-required for selection.
-
-#### Scenario: Rerank records a side-score and does not touch `final`
-- **WHEN** a rerank pass runs over the candidates
-- **THEN** any `rerank` score is recorded for inspection only
-- **AND** the `final` score remains the passage cosine, unchanged by rerank
+## MODIFIED Requirements
 
 ### Requirement: LLM relevance scoring against the criteria, with a rationale
 The system SHALL treat any LLM relevance score as a side-score and the rationale as the optional,
@@ -85,17 +45,7 @@ be demoted or removed — its `final` remains the passage cosine.
 - **THEN** the `final` score is the passage cosine for every candidate (not a rerank/BM25 score)
 - **AND** no rationale is produced and no LLM call is made
 
-### Requirement: Bounded scoring with no silent coverage cap
-The system SHALL bound LLM scoring to the top-K reranked candidates (K configurable via
-`--score-top-k`; `0` means score every candidate). Candidates outside the scored set SHALL be
-demoted out of selection contention with a recorded reason rather than silently dropped, and the
-number scored versus demoted SHALL be logged.
-
-#### Scenario: Candidates beyond top-K are demoted, not silently dropped
-- **WHEN** scoring runs with a finite `--score-top-k` smaller than the candidate count
-- **THEN** only the top-K reranked candidates are LLM-scored
-- **AND** the remaining candidates are demoted below the scored ones with a recorded reason
-- **AND** the count scored versus demoted is recorded in the audit-log
+## ADDED Requirements
 
 ### Requirement: Auditability of the structured scoring path
 The structured-output scoring path SHALL be at least as auditable as the regex path it replaces.
@@ -108,4 +58,3 @@ normalisation). The regex path SHALL continue to record the exact prompt and the
 - **THEN** the audit event records the exact prompt, model, location, the JSON schema, and the raw
   structured response
 - **AND** the normalised score and rationale derived from it are also recorded
-
