@@ -152,4 +152,4 @@ Het `doc_id`-contract (content-geadresseerde id) leeft in het afhankelijkheidsvr
 
 ## Licentie
 
-[EUPL-1.2](LICENSE) — aansluitend bij de Common Ground / Nederlandse-overheidscontext.
+[MIT](LICENSE) — permissief: gebruiken, aanpassen en doorgeven mag, met naamsvermelding.
